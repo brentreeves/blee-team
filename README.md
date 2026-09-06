@@ -1,16 +1,15 @@
 # Team Builder (web)
 
-One self-contained file: open `blee-team.html` by double-clicking it. No server, no node, no build step, no network
-— the whole search runs in the page, and the preferences you paste never leave
-your machine.
+One self-contained file: open `blee-team.html` by double-clicking it. 
+No server, no node, no build step, no network — the whole search runs in the page, and the preferences you paste never leave your machine.
 
 ## Using it
 
 Paste the preference CSV (one row per person: `name, 1st choice, 2nd choice, …`).
 Prefix a choice with `-` when the person does not want that teammate; the
 negative choice uses the same weight as its position, but subtracts from
-their happiness when they are on the same team.
-or press **Load sample class**, set the fields, and press **Build teams**.
+their happiness instead of adding to it when they are on the same team.
+Or press **Load sample class**, set the fields, and press **Build Teams**.
 
 | Field | Meaning |
 | --- | --- |
@@ -23,10 +22,7 @@ or press **Load sample class**, set the fields, and press **Build teams**.
 | Exchanges |  Random swaps tried per start |
 | Restarts |  Fresh random starts; the best result wins |
 
-Output matches the command line tool: teams with per-member scores, the summary
-lines, the plain roster (with a copy button), and the global swap count.
-
-## Two things worth knowing
+## Things worth knowing
 
 **Limits can be impossible.** On the sample class, a 3× member cap and a team gap
 under 13 cannot both hold — no arrangement of those 12 students manages it. The
