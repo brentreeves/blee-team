@@ -71,7 +71,7 @@
   label { display: block; margin-bottom: 12px; font-size: 13px; color: var(--muted); }
   label span.name { display: block; color: var(--ink); font-weight: 600; margin-bottom: 3px; }
   label .hint { display: block; font-size: 12px; margin-top: 3px; }
-  input, textarea {
+  input, select, textarea {
     width: 100%;
     padding: 7px 9px;
     border: 1px solid var(--line);
@@ -81,7 +81,7 @@
     font: inherit;
   }
   textarea { font-family: var(--mono); font-size: 12.5px; min-height: 190px; resize: vertical; }
-  input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
   .buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
   button {
@@ -163,18 +163,20 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.">The Blee Team</h1>
   <div>Copyright &copy; &mdash; 2026 Brent Neal Reeves</div>
-  <p>Paste your preferences in below and select the 'Build Teams' button. Nothing is saved or uploaded &mdash; the whole search runs on this page.</p>
+  <p>Paste your preferences in below and select the 'Build Teams' button.</p>
+  <p>Trixy: names may be prefixed with a "-" meaning 'keep them off my team'. </p>
+  <p>Nothing is saved or uploaded &mdash; the algorithm runs only on this page. (or DOES it???)</p>
 </header>
 
 <main>
   <form class="panel" id="form">
     <h2>Preferences</h2>
     <label for="csv">
-      <span class="hint">name, 1st choice, 2nd choice, &hellip; up to 6 choices. No spaces in names.</span>
+      <span class="hint">name, 1st choice, 2nd choice, &hellip; up to 6 choices. Prefix a name with - to avoid them. No spaces in names.</span>
     </label>
     <textarea id="csv" spellcheck="false" placeholder="Ada_Lovelace,Grace_Hopper,Alan_Turing&#10;Grace_Hopper,Ada_Lovelace,Alan_Turing"></textarea>
     <div class="buttons" style="margin: 8px 0 18px;">
-      <button type="button" id="sample">Load sample class</button>
+      <button type="button" id="sample">Load sample data</button>
       <button type="button" id="clear">Clear</button>
       <button type="button" class="primary" id="run-bottom">Build Teams</button>
     </div>
@@ -187,6 +189,12 @@ SOFTWARE.">The Blee Team</h1>
     <label>
       <span class="name">Weights per choice</span>
       <input id="weights" value="13,8,5,3,2,1">
+      <select id="weight-preset" aria-label="Weight preset">
+        <option value="">Choose a preset...</option>
+        <option value="21,13,8,5,3,2">21,13,8,5,3,2</option>
+        <option value="6,5,4,3,2,1">6,5,4,3,2,1</option>
+        <option value="99,9,1,0,0,0">99,9,1,0,0,0</option>
+      </select>
       <span class="hint">1st choice first. Anyone off the list scores 0.</span>
     </label>
     <div class="grid2">
@@ -291,7 +299,7 @@ function parseCsv(text) {
 }
 
 // in: preference rows, weight per choice position
-// out: Map name -> Map choice -> weight; duplicate choices keep their best weight
+// out: Map name -> Map choice -> signed weight; duplicate choices keep their first weight
 function preferenceMap(rows, weights) {
   const prefs = new Map();
   for (const row of rows) {
@@ -299,8 +307,10 @@ function preferenceMap(rows, weights) {
     if (!prefs.has(name)) prefs.set(name, new Map());
     const choices = prefs.get(name);
     row.slice(1, weights.length + 1).forEach((choice, index) => {
-      if (choice && choice !== name && !choices.has(choice)) {
-        choices.set(choice, weights[index]);
+      const negative = choice.startsWith("-");
+      const other = negative ? choice.slice(1) : choice;
+      if (other && other !== name && !choices.has(other)) {
+        choices.set(other, negative ? -weights[index] : weights[index]);
       }
     });
   }
@@ -341,18 +351,20 @@ function totalHappiness(teams, prefs) {
 function scan(teams, prefs) {
   const teamScores = [];
   const memberScores = [];
+  const fairnessScores = [];
   let total = 0;
   for (const team of teams) {
     let score = 0;
     for (const name of team) {
       const happiness = memberHappiness(name, team, prefs);
       memberScores.push(happiness);
+      if (prefs.get(name)?.size) fairnessScores.push(happiness);
       score += happiness;
     }
     teamScores.push(score);
     total += score;
   }
-  return { total, teamScores, memberScores };
+  return { total, teamScores, memberScores, fairnessScores };
 }
 
 // the penalties, given scores already scanned.  0 means every limit holds.
@@ -370,7 +382,7 @@ function penaltyFrom(teamScores, memberScores, ratio, maxDiff) {
 }
 
 function fairnessPenalty(teams, prefs, ratio) {
-  return penaltyFrom([], scan(teams, prefs).memberScores, ratio, null);
+  return penaltyFrom([], scan(teams, prefs).fairnessScores, ratio, null);
 }
 
 function teamSpreadPenalty(teams, prefs, maxDiff) {
@@ -379,14 +391,14 @@ function teamSpreadPenalty(teams, prefs, maxDiff) {
 
 function constraintPenalty(teams, prefs, ratio, maxDiff) {
   const s = scan(teams, prefs);
-  return penaltyFrom(s.teamScores, s.memberScores, ratio, maxDiff);
+  return penaltyFrom(s.teamScores, s.fairnessScores, ratio, maxDiff);
 }
 
 // rank an arrangement: meeting every limit beats missing one, then least
 // violation, then happiest
 function arrangementKey(teams, prefs, ratio, maxDiff) {
   const s = scan(teams, prefs);
-  const penalty = penaltyFrom(s.teamScores, s.memberScores, ratio, maxDiff);
+  const penalty = penaltyFrom(s.teamScores, s.fairnessScores, ratio, maxDiff);
   return [penalty === 0 ? 1 : 0, -penalty, s.total];
 }
 
@@ -423,7 +435,7 @@ function optimize(teams, prefs, iterations, rng, ratio, maxDiff) {
 
   const objective = () => {
     const s = scan(teams, prefs);
-    return s.total - PENALTY_WEIGHT * penaltyFrom(s.teamScores, s.memberScores, ratio, maxDiff);
+    return s.total - PENALTY_WEIGHT * penaltyFrom(s.teamScores, s.fairnessScores, ratio, maxDiff);
   };
 
   let tried = 0;
@@ -493,6 +505,9 @@ cc,bb,ii,jj,kk
 dd,gg,jj,bb,cc
 ee,hh,kk,aa,dd
 ff,ii,ll,aa,ee
+ii
+jj
+kk
 </script>
 
 <!-- <script id="sample-data" type="text/plain">
@@ -524,6 +539,7 @@ const defaultSettings = {
 function resetSettingsToDefaults() {
   $("title").value = defaultSettings.title;
   $("weights").value = defaultSettings.weights;
+  $("weight-preset").value = "";
   $("size").value = defaultSettings.size;
   $("ratio").value = defaultSettings.ratio;
   $("teamdiff").value = defaultSettings.teamdiff;
@@ -540,6 +556,9 @@ $("clear").addEventListener("click", () => { $("csv").value = ""; $("csv").focus
 $("reset-defaults").addEventListener("click", () => {
   resetSettingsToDefaults();
   $("title").focus();
+});
+$("weight-preset").addEventListener("change", (event) => {
+  if (event.target.value) $("weights").value = event.target.value;
 });
 
 async function buildTeams(event) {
@@ -604,7 +623,7 @@ async function buildTeams(event) {
   } finally {
     activeButtons.forEach((b) => {
       b.disabled = false;
-      b.textContent = "Build teams";
+      b.textContent = "Build Teams";
     });
     progress.hidden = true;
   }
