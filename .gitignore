@@ -1,0 +1,7 @@
+
+# Local Claude configuration and history
+.claude/settings.local.json
+.claude/history/
+
+# macOS metadata
+.DS_Store

@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Blee Team</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --ink: #16181d;
+    --muted: #666d7a;
+    --line: #dce0e6;
+    --accent: #2f5fd0;
+    --accent-ink: #ffffff;
+    --good: #1a7f4b;
+    --bad: #b3261e;
+    --chip: #eef1f6;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a;
+      --panel: #1c1f25;
+      --ink: #e7e9ee;
+      --muted: #9aa2b1;
+      --line: #2e333c;
+      --accent: #6f9bff;
+      --accent-ink: #0e1116;
+      --good: #57d193;
+      --bad: #ff8a80;
+      --chip: #262b33;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    padding: 22px 24px 16px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+  }
+  header h1 { margin: 0 0 4px; font-size: 20px; letter-spacing: -0.01em; }
+  header p { margin: 0; color: var(--muted); font-size: 13.5px; }
+  main {
+    display: grid;
+    grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
+    gap: 20px;
+    padding: 20px 24px 48px;
+    align-items: start;
+  }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .panel h2 {
+    margin: 0 0 12px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+  }
+  label { display: block; margin-bottom: 12px; font-size: 13px; color: var(--muted); }
+  label span.name { display: block; color: var(--ink); font-weight: 600; margin-bottom: 3px; }
+  label .hint { display: block; font-size: 12px; margin-top: 3px; }
+  input, select, textarea {
+    width: 100%;
+    padding: 7px 9px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--ink);
+    font: inherit;
+  }
+  textarea { font-family: var(--mono); font-size: 12.5px; min-height: 190px; resize: vertical; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+  .buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  button {
+    font: inherit;
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  button:disabled { opacity: 0.55; cursor: progress; }
+  .banner {
+    border-radius: 6px;
+    padding: 9px 11px;
+    margin-bottom: 12px;
+    font-size: 13.5px;
+    border: 1px solid var(--bad);
+    color: var(--bad);
+  }
+  .out { font-family: var(--mono); font-size: 13px; }
+  .out h3 { font-family: system-ui, sans-serif; font-size: 13px; margin: 20px 0 8px; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 0.07em; }
+  .out h3:first-child { margin-top: 0; }
+  .subtle { color: var(--muted); }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  .teams { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+  .team {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: var(--bg);
+  }
+  .team .head { display: flex; justify-content: space-between; align-items: baseline;
+                font-weight: 600; margin-bottom: 6px; font-family: system-ui, sans-serif; }
+  .team .head .score { color: var(--muted); font-weight: 500; font-size: 12px; }
+  .team .row { display: flex; justify-content: space-between; gap: 10px; padding: 1px 0; }
+  .team .row .pts { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .team .row.zero .pts { color: var(--bad); }
+  .summary { margin: 0; padding: 0; list-style: none; }
+  .summary li { padding: 2px 0; }
+  .held { color: var(--good); }
+  .missed { color: var(--bad); font-weight: 600; }
+  pre.roster {
+    margin: 0; padding: 11px 12px; background: var(--bg);
+    border: 1px solid var(--line); border-radius: 8px;
+    white-space: pre-wrap; word-break: break-word; font-size: 13px;
+  }
+  .rosterhead { display: flex; justify-content: space-between; align-items: center; }
+  .rosterhead button { padding: 3px 9px; font-size: 12px; }
+  .placeholder { color: var(--muted); font-family: system-ui, sans-serif; }
+  progress { width: 100%; height: 6px; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 title="MIT License
+
+Copyright (c) 2026 Brent Neal Reeves
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the 'Software'), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.">The Blee Team</h1>
+  <div>Copyright &copy; &mdash; 2026 Brent Neal Reeves</div>
+  <p>Paste your preferences in below and select the 'Build Teams' button.</p>
+  <p>Trixy: names may be prefixed with a "-" meaning 'keep them off my team'. </p>
+  <p>Nothing is saved or uploaded &mdash; the algorithm runs only on this page. (or DOES it???)</p>
+</header>
+
+<main>
+  <form class="panel" id="form">
+    <h2>Preferences</h2>
+    <label for="csv">
+      <span class="hint">name, 1st choice, 2nd choice, &hellip; up to 6 choices. Prefix a name with - to avoid them. No spaces in names.</span>
+    </label>
+    <textarea id="csv" spellcheck="false" placeholder="Ada_Lovelace,Grace_Hopper,Alan_Turing&#10;Grace_Hopper,Ada_Lovelace,Alan_Turing"></textarea>
+    <div class="buttons" style="margin: 8px 0 18px;">
+      <button type="button" id="sample">Load sample data</button>
+      <button type="button" id="clear">Clear</button>
+      <button type="button" class="primary" id="run-bottom">Build Teams</button>
+    </div>
+
+    <h2>Settings</h2>
+    <label>
+      <span class="name">Title</span>
+      <input id="title" value="Settings">
+    </label>
+    <label>
+      <span class="name">Weights per choice</span>
+      <input id="weights" value="13,8,5,3,2,1">
+      <select id="weight-preset" aria-label="Weight preset">
+        <option value="">Choose a preset...</option>
+        <option value="21,13,8,5,3,2">21,13,8,5,3,2</option>
+        <option value="6,5,4,3,2,1">6,5,4,3,2,1</option>
+        <option value="99,9,1,0,0,0">99,9,1,0,0,0</option>
+      </select>
+      <span class="hint">1st choice first. Anyone off the list scores 0.</span>
+    </label>
+    <div class="grid2">
+      <label>
+        <span class="name">Team size</span>
+        <input id="size" type="number" min="2" step="1" value="3">
+      </label>
+      <label title="Maximum difference between member happiness, as a factor: 5 means somebody could be 5 times as happy as somebody else">
+        <span class="name">Member cap</span>
+        <input id="ratio" type="number" min="0" step="0.5" value="6">
+        <span class="hint">0 = off</span>
+      </label>
+      <label title="Maximum difference in team happiness">
+        <span class="name">Team gap</span>
+        <input id="teamdiff" type="number" min="0" step="1" placeholder="none">
+        <span class="hint">blank = no limit</span>
+      </label>
+      <label>
+        <span class="name">Seed</span>
+        <input id="seed" type="number" step="1" placeholder="random">
+      </label>
+      <label>
+        <span class="name">Exchanges</span>
+        <input id="iterations" type="number" min="1" step="1" value="10000">
+      </label>
+      <label>
+        <span class="name">Restarts</span>
+        <input id="restarts" type="number" min="1" step="1" value="50">
+      </label>
+    </div>
+
+    <div class="buttons">
+      <button type="button" id="reset-defaults">Reset defaults</button>
+    </div>
+    <progress id="progress" hidden max="100" value="0"></progress>
+  </form>
+
+  <section class="panel">
+    <div id="error" hidden class="banner"></div>
+    <div class="out" id="out">
+      <p class="placeholder">Paste preferences and press <strong>Build Teams</strong>. Load the sample class if you just want to see it work.</p>
+    </div>
+  </section>
+</main>
+
+<!-- ===== ALGORITHM START (ported from swaps.py; extracted verbatim by tests/verify.mjs) ===== -->
+<script id="algorithm">
+"use strict";
+
+// How hard a limit violation counts against happiness when judging a swap.  A hard
+// "never break a limit" rule traps the climb, because reaching a happier
+// arrangement usually means widening the gap on the way there; letting it stray in
+// proportion to the violation, while remembering the best legal arrangement it ever
+// stood on, is what reaches the true optimum.
+const PENALTY_WEIGHT = 3.0;
+
+// mulberry32: small seeded generator, so a given seed always rebuilds the same
+// teams.  (Python's random is a different generator, so the same seed number will
+// not reproduce the command line tool's exact teams -- only its scores.)
+function makeRng(seed) {
+  let a = seed >>> 0;
+  const rnd = () => {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  rnd.below = (n) => Math.floor(rnd() * n);
+  // two different indexes in [0, n)
+  rnd.twoOf = (n) => {
+    const a1 = rnd.below(n);
+    let b1 = rnd.below(n - 1);
+    if (b1 >= a1) b1 += 1;
+    return [a1, b1];
+  };
+  return rnd;
+}
+
+// a forgiving CSV split: handles quoted fields, trims blanks, drops empty lines
+function parseCsv(text) {
+  const rows = [];
+  for (const line of text.split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    const cells = [];
+    let cell = "";
+    let quoted = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (quoted) {
+        if (ch === '"' && line[i + 1] === '"') { cell += '"'; i++; }
+        else if (ch === '"') quoted = false;
+        else cell += ch;
+      } else if (ch === '"') quoted = true;
+      else if (ch === ",") { cells.push(cell); cell = ""; }
+      else cell += ch;
+    }
+    cells.push(cell);
+    const trimmed = cells.map((c) => c.trim());
+    if (trimmed[0]) rows.push(trimmed);
+  }
+  return rows;
+}
+
+// in: preference rows, weight per choice position
+// out: Map name -> Map choice -> signed weight; duplicate choices keep their first weight
+function preferenceMap(rows, weights) {
+  const prefs = new Map();
+  for (const row of rows) {
+    const name = row[0];
+    if (!prefs.has(name)) prefs.set(name, new Map());
+    const choices = prefs.get(name);
+    row.slice(1, weights.length + 1).forEach((choice, index) => {
+      const negative = choice.startsWith("-");
+      const other = negative ? choice.slice(1) : choice;
+      if (other && other !== name && !choices.has(other)) {
+        choices.set(other, negative ? -weights[index] : weights[index]);
+      }
+    });
+  }
+  return prefs;
+}
+
+// names asked for by somebody but who never filled out a preference row
+function unknownNames(prefs) {
+  const wanted = new Set();
+  for (const choices of prefs.values()) for (const c of choices.keys()) wanted.add(c);
+  return [...wanted].filter((n) => !prefs.has(n)).sort();
+}
+
+// in: one person, the team they are on
+// out: sum of the weights that person assigned to their teammates
+function memberHappiness(name, team, prefs) {
+  const choices = prefs.get(name);
+  if (!choices) return 0;
+  let total = 0;
+  for (const other of team) if (other !== name) total += choices.get(other) || 0;
+  return total;
+}
+
+function teamHappiness(team, prefs) {
+  let total = 0;
+  for (const name of team) total += memberHappiness(name, team, prefs);
+  return total;
+}
+
+function totalHappiness(teams, prefs) {
+  let total = 0;
+  for (const team of teams) total += teamHappiness(team, prefs);
+  return total;
+}
+
+// one pass over the arrangement, since the search asks for all three of these on
+// every single swap
+function scan(teams, prefs) {
+  const teamScores = [];
+  const memberScores = [];
+  const fairnessScores = [];
+  let total = 0;
+  for (const team of teams) {
+    let score = 0;
+    for (const name of team) {
+      const happiness = memberHappiness(name, team, prefs);
+      memberScores.push(happiness);
+      if (prefs.get(name)?.size) fairnessScores.push(happiness);
+      score += happiness;
+    }
+    teamScores.push(score);
+    total += score;
+  }
+  return { total, teamScores, memberScores, fairnessScores };
+}
+
+// the penalties, given scores already scanned.  0 means every limit holds.
+function penaltyFrom(teamScores, memberScores, ratio, maxDiff) {
+  let penalty = 0;
+  if (ratio > 0 && memberScores.length) {
+    const top = Math.max(...memberScores);
+    for (const score of memberScores) penalty += Math.max(0, top - ratio * score);
+  }
+  if (maxDiff !== null && teamScores.length) {
+    const gap = Math.max(...teamScores) - Math.min(...teamScores);
+    penalty += Math.max(0, gap - maxDiff);
+  }
+  return penalty;
+}
+
+function fairnessPenalty(teams, prefs, ratio) {
+  return penaltyFrom([], scan(teams, prefs).fairnessScores, ratio, null);
+}
+
+function teamSpreadPenalty(teams, prefs, maxDiff) {
+  return penaltyFrom(scan(teams, prefs).teamScores, [], 0, maxDiff);
+}
+
+function constraintPenalty(teams, prefs, ratio, maxDiff) {
+  const s = scan(teams, prefs);
+  return penaltyFrom(s.teamScores, s.fairnessScores, ratio, maxDiff);
+}
+
+// rank an arrangement: meeting every limit beats missing one, then least
+// violation, then happiest
+function arrangementKey(teams, prefs, ratio, maxDiff) {
+  const s = scan(teams, prefs);
+  const penalty = penaltyFrom(s.teamScores, s.fairnessScores, ratio, maxDiff);
+  return [penalty === 0 ? 1 : 0, -penalty, s.total];
+}
+
+function keyBeats(a, b) {
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] > b[i]) return true;
+    if (a[i] < b[i]) return false;
+  }
+  return false;
+}
+
+// names shuffled into teams of teamSize (last team holds the remainder)
+function randomTeams(roster, teamSize, rng) {
+  const names = [...roster];
+  for (let i = names.length - 1; i > 0; i--) {
+    const j = rng.below(i + 1);
+    [names[i], names[j]] = [names[j], names[i]];
+  }
+  const teams = [];
+  for (let i = 0; i < names.length; i += teamSize) teams.push(names.slice(i, i + teamSize));
+  return teams;
+}
+
+// repeat iterations times: swap two random people from two random teams, keeping
+// the swap when it raises happiness minus PENALTY_WEIGHT times however far the
+// limits are violated.  The climb may pass through arrangements that break a
+// limit, but what comes back is the best arrangement it ever visited -- so a
+// returned arrangement breaks a limit only if the climb never found one that did not.
+// out: { best, tried, kept }
+function optimize(teams, prefs, iterations, rng, ratio, maxDiff) {
+  let best = teams.map((team) => [...team]);
+  let bestKey = arrangementKey(teams, prefs, ratio, maxDiff);
+  if (teams.length < 2) return { best, tried: 0, kept: 0 };
+
+  const objective = () => {
+    const s = scan(teams, prefs);
+    return s.total - PENALTY_WEIGHT * penaltyFrom(s.teamScores, s.fairnessScores, ratio, maxDiff);
+  };
+
+  let tried = 0;
+  let kept = 0;
+  for (let n = 0; n < iterations; n++) {
+    const [a, b] = rng.twoOf(teams.length);
+    if (!teams[a].length || !teams[b].length) continue;
+    const i = rng.below(teams[a].length);
+    const j = rng.below(teams[b].length);
+
+    tried++;
+    const before = objective();
+    [teams[a][i], teams[b][j]] = [teams[b][j], teams[a][i]];
+
+    if (objective() > before) {
+      kept++;
+      const key = arrangementKey(teams, prefs, ratio, maxDiff);
+      if (keyBeats(key, bestKey)) {
+        bestKey = key;
+        best = teams.map((team) => [...team]);
+      }
+    } else {
+      [teams[a][i], teams[b][j]] = [teams[b][j], teams[a][i]];
+    }
+  }
+  return { best, tried, kept };
+}
+
+// a single hill climb stalls easily once the limits narrow the field, so run
+// several from fresh random teams and keep the best arrangement any of them found.
+// onRestart, when given, is called after each start so a UI can show progress.
+function bestTeams(roster, prefs, teamSize, iterations, rng, ratio, restarts, maxDiff, onRestart) {
+  let best = [];
+  let bestKey = [-1, -Infinity, -1];
+  let winner = { tried: 0, kept: 0 };
+  const totals = { tried: 0, kept: 0 };
+
+  const rounds = Math.max(1, restarts);
+  for (let r = 0; r < rounds; r++) {
+    const run = optimize(randomTeams(roster, teamSize, rng), prefs, iterations, rng, ratio, maxDiff);
+    totals.tried += run.tried;
+    totals.kept += run.kept;
+    const key = arrangementKey(run.best, prefs, ratio, maxDiff);
+    if (keyBeats(key, bestKey)) {
+      bestKey = key;
+      best = run.best;
+      winner = { tried: run.tried, kept: run.kept };
+    }
+    if (onRestart) onRestart(r + 1, rounds);
+  }
+  return { teams: best, winner, totals };
+}
+
+globalThis.TeamBuilder = {
+  PENALTY_WEIGHT, makeRng, parseCsv, preferenceMap, unknownNames,
+  memberHappiness, teamHappiness, totalHappiness, scan, penaltyFrom,
+  fairnessPenalty, teamSpreadPenalty, constraintPenalty, arrangementKey,
+  keyBeats, randomTeams, optimize, bestTeams,
+};
+</script>
+<!-- ===== ALGORITHM END ===== -->
+
+<script id="sample-data" type="text/plain">
+aa,bb,cc,dd,ee
+bb,aa,cc,ii,jj
+cc,bb,ii,jj,kk
+dd,gg,jj,bb,cc
+ee,hh,kk,aa,dd
+ff,ii,ll,aa,ee
+ii
+jj
+kk
+</script>
+
+<!-- <script id="sample-data" type="text/plain">
+aa,bb,cc,dd,ee,ff,gg
+bb,aa,cc,ii,jj,kk,ll
+cc,bb,ii,jj,kk,ll,mm
+dd,gg,jj,kk,ll,mm,cc
+ee,hh,kk,ll,mm,nn,dd
+ff,ii,ll,mm,nn,oo,ee
+</script> -->
+
+<script>
+"use strict";
+const TB = globalThis.TeamBuilder;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+const defaultSettings = {
+  title: "Maybe a Class Name",
+  weights: "13,8,5,3,2,1",
+  size: "3",
+  ratio: "6",
+  teamdiff: "",
+  seed: "",
+  iterations: "10000",
+  restarts: "50",
+};
+
+function resetSettingsToDefaults() {
+  $("title").value = defaultSettings.title;
+  $("weights").value = defaultSettings.weights;
+  $("weight-preset").value = "";
+  $("size").value = defaultSettings.size;
+  $("ratio").value = defaultSettings.ratio;
+  $("teamdiff").value = defaultSettings.teamdiff;
+  $("seed").value = defaultSettings.seed;
+  $("iterations").value = defaultSettings.iterations;
+  $("restarts").value = defaultSettings.restarts;
+}
+
+$("sample").addEventListener("click", () => {
+  $("csv").value = $("sample-data").textContent.trim();
+  $("title").value = "26F CS374";
+});
+$("clear").addEventListener("click", () => { $("csv").value = ""; $("csv").focus(); });
+$("reset-defaults").addEventListener("click", () => {
+  resetSettingsToDefaults();
+  $("title").focus();
+});
+$("weight-preset").addEventListener("change", (event) => {
+  if (event.target.value) $("weights").value = event.target.value;
+});
+
+async function buildTeams(event) {
+  if (event) event.preventDefault();
+  showError("");
+  let settings;
+  try {
+    settings = readSettings();
+  } catch (err) {
+    showError(err.message);
+    return;
+  }
+
+  const rows = TB.parseCsv($("csv").value);
+  if (!rows.length) { showError("No preferences found. Paste a CSV, or load the sample class."); return; }
+
+  const prefs = TB.preferenceMap(rows, settings.weights);
+  const roster = [...prefs.keys()].sort();
+  if (roster.length < settings.size * 2) {
+    showError(`Need at least ${settings.size * 2} people to make two teams of ${settings.size}; found ${roster.length}.`);
+    return;
+  }
+
+  const button = $("run-bottom");
+  const progress = $("progress");
+  const activeButtons = [button].filter(Boolean);
+  activeButtons.forEach((b) => {
+    b.disabled = true;
+    b.textContent = "Building…";
+  });
+  progress.hidden = false;
+  progress.value = 0;
+  await new Promise(requestAnimationFrame);
+
+  const started = performance.now();
+  const rng = TB.makeRng(settings.seed);
+  let result = null;
+  try {
+    let done = 0;
+    const collected = { teams: [], winner: { tried: 0, kept: 0 }, totals: { tried: 0, kept: 0 } };
+    let bestKey = [-1, -Infinity, -1];
+    for (let r = 0; r < settings.restarts; r++) {
+      const run = TB.optimize(TB.randomTeams(roster, settings.size, rng), prefs,
+                              settings.iterations, rng, settings.ratio, settings.maxDiff);
+      collected.totals.tried += run.tried;
+      collected.totals.kept += run.kept;
+      const key = TB.arrangementKey(run.best, prefs, settings.ratio, settings.maxDiff);
+      if (TB.keyBeats(key, bestKey)) {
+        bestKey = key;
+        collected.teams = run.best;
+        collected.winner = { tried: run.tried, kept: run.kept };
+      }
+      done++;
+      if (done % 5 === 0 || done === settings.restarts) {
+        progress.value = (100 * done) / settings.restarts;
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+    }
+    result = collected;
+  } catch (err) {
+    showError("Something went wrong while building: " + err.message);
+  } finally {
+    activeButtons.forEach((b) => {
+      b.disabled = false;
+      b.textContent = "Build Teams";
+    });
+    progress.hidden = true;
+  }
+
+  if (result) {
+    const elapsed = ((performance.now() - started) / 1000).toFixed(2) + "s";
+    render(result, prefs, settings, TB.unknownNames(prefs), elapsed);
+  }
+}
+
+$("run-bottom").addEventListener("click", buildTeams);
+
+function showError(message) {
+  const box = $("error");
+  box.textContent = message;
+  box.hidden = !message;
+}
+
+// read and check the form, the way argparse would
+function readSettings() {
+  const weights = $("weights").value.replace(/[[\]]/g, "").split(",")
+    .map((w) => w.trim()).filter(Boolean).map(Number);
+  if (!weights.length || weights.some((w) => !Number.isFinite(w))) {
+    throw new Error("Weights must be a comma separated list of numbers, best choice first.");
+  }
+  const size = parseInt($("size").value, 10);
+  if (!(size >= 2)) throw new Error("Team size must be 2 or more.");
+
+  const iterations = parseInt($("iterations").value, 10);
+  if (!(iterations >= 1)) throw new Error("Exchanges must be 1 or more.");
+
+  const restarts = parseInt($("restarts").value, 10);
+  if (!(restarts >= 1)) throw new Error("Restarts must be 1 or more.");
+
+  const ratio = Number($("ratio").value === "" ? 0 : $("ratio").value);
+  if (!Number.isFinite(ratio) || ratio < 0) throw new Error("Member cap must be 0 or more (0 turns it off).");
+
+  const rawDiff = $("teamdiff").value.trim();
+  const maxDiff = rawDiff === "" ? null : parseInt(rawDiff, 10);
+  if (maxDiff !== null && !(maxDiff >= 0)) throw new Error("Team gap must be 0 or more, or blank for no limit.");
+
+  const rawSeed = $("seed").value.trim();
+  const seed = rawSeed === "" ? (Math.random() * 2 ** 32) >>> 0 : parseInt(rawSeed, 10) >>> 0;
+
+  return { weights, size, iterations, restarts, ratio, maxDiff, seed,
+           seeded: rawSeed !== "", title: $("title").value.trim() || "Preferences" };
+}
+
+// the scored report: every team, its score, and what each member earned on it
+function renderTeams(teams, prefs) {
+  return `<div class="teams">` + teams.map((team, index) => {
+    const rows = [...team]
+      .sort((a, b) => TB.memberHappiness(b, team, prefs) - TB.memberHappiness(a, team, prefs))
+      .map((name) => {
+        const points = TB.memberHappiness(name, team, prefs);
+        return `<div class="row${points === 0 ? " zero" : ""}"><span>${esc(name)}</span><span class="pts">${points}</span></div>`;
+      }).join("");
+    return `<div class="team"><div class="head"><span>Team ${index + 1}</span>` +
+           `<span class="score">score ${TB.teamHappiness(team, prefs)}</span></div>${rows}</div>`;
+  }).join("") + `</div>`;
+}
+
+// the summary lines, including whether each limit was actually met
+function renderSummary(teams, prefs, settings) {
+  const s = TB.scan(teams, prefs);
+  const low = Math.min(...s.memberScores);
+  const high = Math.max(...s.memberScores);
+  const spread = low > 0 ? (high / low).toFixed(2) + "×" : "infinite";
+  const weak = Math.min(...s.teamScores);
+  const strong = Math.max(...s.teamScores);
+
+  const lines = [
+    `Total happiness: <strong>${s.total}</strong>`,
+    `Least happy member ${low}, happiest ${high}, spread ${spread}`,
+    `Weakest team ${weak}, strongest ${strong}, gap ${strong - weak}`,
+  ];
+  if (settings.ratio > 0) {
+    const held = TB.fairnessPenalty(teams, prefs, settings.ratio) === 0;
+    lines.push(`Member cap of ${settings.ratio}× <span class="${held ? "held" : "missed"}">${held ? "holds" : "NOT met"}</span>`);
+  }
+  if (settings.maxDiff !== null) {
+    const held = TB.teamSpreadPenalty(teams, prefs, settings.maxDiff) === 0;
+    lines.push(`Team gap limit of ${settings.maxDiff} <span class="${held ? "held" : "missed"}">${held ? "holds" : "NOT met"}</span>`);
+  }
+  return `<ul class="summary">` + lines.map((l) => `<li>${l}</li>`).join("") + `</ul>`;
+}
+
+function rosterText(teams) {
+  return teams.map((team, i) => `Team ${i + 1}: ${[...team].sort().join(", ")}`).join("\n");
+}
+
+function render(result, prefs, settings, missing, elapsed) {
+  const { teams, winner, totals } = result;
+  const limits = [];
+  if (settings.ratio > 0) limits.push(`members within ${settings.ratio}×`);
+  if (settings.maxDiff !== null) limits.push(`teams within ${settings.maxDiff} points`);
+  const share = totals.tried ? (100 * totals.kept / totals.tried).toFixed(2) : "0.00";
+
+  $("out").innerHTML = `
+    <h3>${esc(settings.title)}</h3>
+    <p class="subtle">weights [${settings.weights.join(", ")}] &middot;
+      ${settings.iterations.toLocaleString()} exchanges per start, ${winner.kept} kept in the winner &middot;
+      ${limits.length ? limits.join(" and ") : "no limits"}</p>
+    ${missing.length ? `<p class="subtle">Note: chosen but no preferences of their own: ${esc(missing.join(", "))}</p>` : ""}
+
+    <h3>Team and Member Happiness</h3>
+    ${renderTeams(teams, prefs)}
+
+    <h3>Summary</h3>
+    ${renderSummary(teams, prefs, settings)}
+
+    <h3>Roster</h3>
+    <div class="rosterhead">
+      <span class="subtle">Suggested teams</span>
+      <button type="button" id="copy">Copy</button>
+      </div>
+    <pre class="roster" id="rosterText">${esc(rosterText(teams))}</pre>
+
+    <h3>Execution</h3>
+    <ul class="summary">
+      <li>${totals.tried.toLocaleString()} random swaps checked over ${settings.restarts} starts, ${totals.kept.toLocaleString()} kept (${share}%)</li>
+      <li>Seed ${settings.seed}${settings.seeded ? "" : " (picked at random)"} &middot; ${elapsed} to run</li>
+    </ul>`;
+
+  $("copy").addEventListener("click", async (event) => {
+    try {
+      await navigator.clipboard.writeText(rosterText(teams));
+      event.target.textContent = "Copied";
+    } catch {
+      const range = document.createRange();
+      range.selectNodeContents($("rosterText"));
+      const selection = getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      event.target.textContent = "Selected";
+    }
+    setTimeout(() => { event.target.textContent = "Copy"; }, 1400);
+  });
+}
+
+</script>
+</body>
+</html>
