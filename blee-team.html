@@ -164,17 +164,16 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.">The Blee Team</h1>
-  <div>Copyright &copy; &mdash; 2026 Brent Neal Reeves. Use at your own risk.  Guaranteed to have bugs.</div>
+  <div>Copyright &copy; &mdash; 2026 Brent Neal Reeves. Use at your own risk - bugs likely.</div>
   
-  <p>Paste your preferences in below and select the 'Build Teams' button.</p>
-  <p>Trixy: names may be prefixed with a "-" meaning 'prefer NOT to have this one'. </p>
+  <p>Paste your preferences in below and select the 'Build Teams' button. </p>
   <p>Nothing is saved or uploaded &mdash; the algorithm runs only on this page. (or DOES it???)</p>
 </header>
 
 <section class="panel" id="preferences-panel">
   <h2>Preferences</h2>
   <label for="csv">
-    <span class="hint">name, 1st choice, 2nd choice, &hellip; up to 8 choices. Prefix a name with "-" to indicate you want to avoid them.</span>
+    <span class="hint">name, 1st choice, 2nd choice, &hellip; up to 6 choices. Prefix a name with "-" to vote AGAINST them.</span>
   </label>
   <textarea id="csv" spellcheck="false" placeholder="Ada_Lovelace,Grace_Hopper,Alan_Turing&#10;Grace_Hopper,Ada_Lovelace,Alan_Turing"></textarea>
 </section>
@@ -702,8 +701,7 @@ function renderSummary(teams, prefs, settings) {
   const strong = Math.max(...s.teamScores);
 
   const lines = [
-    `Total happiness: <strong>${s.total}</strong>`,
-    `Least happy member ${low}, happiest ${high}, spread ${spread}`,
+    `Total happiness: <strong>${s.total}</strong>.  Least happy member ${low}, happiest ${high}, spread ${spread}`,
     `Weakest team ${weak}, strongest ${strong}, gap ${strong - weak}`,
   ];
   if (settings.ratio > 0) {
@@ -729,17 +727,8 @@ function render(result, prefs, settings, missing, elapsed) {
   const share = totals.tried ? (100 * totals.kept / totals.tried).toFixed(2) : "0.00";
 
   $("out").innerHTML = `
-    <h3>${esc(settings.title)}</h3>
-    <p class="subtle">weights [${settings.weights.join(", ")}] &middot;
-      ${settings.iterations.toLocaleString()} swaps per start, ${winner.kept} kept &middot;
-      ${limits.length ? limits.join(" and ") : "no limits"}</p>
-    ${missing.length ? `<p class="subtle">Note: chosen but no preferences of their own: ${esc(missing.join(", "))}</p>` : ""}
-
     <h3>Team and Member Happiness</h3>
     ${renderTeams(teams, prefs)}
-
-    <h3>Summary</h3>
-    ${renderSummary(teams, prefs, settings)}
 
     <h3>Roster</h3>
     <div class="rosterhead">
@@ -748,6 +737,18 @@ function render(result, prefs, settings, missing, elapsed) {
       </div>
     <pre class="roster" id="rosterText">${esc(rosterText(teams))}</pre>
 
+    
+    <h3>Summary</h3>
+    ${renderSummary(teams, prefs, settings)}
+
+
+    <h3>${esc(settings.title)}</h3>
+    <p class="subtle">weights [${settings.weights.join(", ")}] &middot;
+      ${settings.iterations.toLocaleString()} swaps per start, ${winner.kept} kept &middot;
+      ${limits.length ? limits.join(" and ") : "no limits"}</p>
+    ${missing.length ? `<p class="subtle">Note: chosen but no preferences of their own: ${esc(missing.join(", "))}</p>` : ""}
+
+    
     <h3>Execution</h3>
     <ul class="summary">
       <li>${totals.tried.toLocaleString()} random swaps checked over ${settings.restarts} starts, ${totals.kept.toLocaleString()} kept (${share}%)</li>
