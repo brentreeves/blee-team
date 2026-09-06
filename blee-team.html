@@ -47,6 +47,8 @@
   }
   header h1 { margin: 0 0 4px; font-size: 20px; letter-spacing: -0.01em; }
   header p { margin: 0; color: var(--muted); font-size: 13.5px; }
+  #preferences-panel { margin: 20px 24px 0; }
+  #preferences-panel textarea { min-height: 68px; }
   main {
     display: grid;
     grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
@@ -169,14 +171,17 @@ SOFTWARE.">The Blee Team</h1>
   <p>Nothing is saved or uploaded &mdash; the algorithm runs only on this page. (or DOES it???)</p>
 </header>
 
+<section class="panel" id="preferences-panel">
+  <h2>Preferences</h2>
+  <label for="csv">
+    <span class="hint">name, 1st choice, 2nd choice, &hellip; up to 6 choices. Prefix a name with - to avoid them. No spaces in names.</span>
+  </label>
+  <textarea id="csv" spellcheck="false" placeholder="Ada_Lovelace,Grace_Hopper,Alan_Turing&#10;Grace_Hopper,Ada_Lovelace,Alan_Turing"></textarea>
+</section>
+
 <main>
   <form class="panel" id="form">
-    <h2>Preferences</h2>
-    <label for="csv">
-      <span class="hint">name, 1st choice, 2nd choice, &hellip; up to 6 choices. Prefix a name with - to avoid them. No spaces in names.</span>
-    </label>
-    <textarea id="csv" spellcheck="false" placeholder="Ada_Lovelace,Grace_Hopper,Alan_Turing&#10;Grace_Hopper,Ada_Lovelace,Alan_Turing"></textarea>
-    <div class="buttons" style="margin: 8px 0 18px;">
+    <div class="buttons" style="margin: 0 0 18px;">
       <button type="button" id="sample">Load sample data</button>
       <button type="button" id="clear">Clear</button>
       <button type="button" class="primary" id="run-bottom">Build Teams</button>
