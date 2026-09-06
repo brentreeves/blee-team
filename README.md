@@ -12,7 +12,7 @@ negative choice uses the same weight as its position, but subtracts from
 their happiness when they are on the same team.
 or press **Load sample class**, set the fields, and press **Build teams**.
 
-| Field | Command line equivalent | Meaning |
+| Field | Meaning |
 | --- | --- |
 | Title |  Heading on the report |
 | Weights per choice |  Points for 1st, 2nd, … choice. Off the list scores 0 |
