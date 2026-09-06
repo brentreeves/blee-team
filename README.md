@@ -1,11 +1,11 @@
-# Team Builder (web)
+# The Blee Team
 
 One self-contained file: open `blee-team.html` by double-clicking it. 
 No server, no node, no build step, no network — the whole search runs in the page, and the preferences you paste never leave your machine.
 
-## Using it
+## Use
 
-Paste the preference CSV (one row per person: `name, 1st choice, 2nd choice, …`).
+Paste the preference CSV (one row per person: `name, 1st choice, 2nd choice, ...`).
 Prefix a choice with `-` when the person does not want that teammate; the
 negative choice uses the same weight as its position, but subtracts from
 their happiness instead of adding to it when they are on the same team.
@@ -22,7 +22,7 @@ Or press **Load sample class**, set the fields, and press **Build Teams**.
 | Exchanges |  Random swaps tried per start |
 | Restarts |  Fresh random starts; the best result wins |
 
-## Things worth knowing
+## Algorith Notes
 
 **Limits can be impossible.** On the sample class, a 3× member cap and a team gap
 under 13 cannot both hold — no arrangement of those 12 students manages it. The
@@ -35,7 +35,7 @@ page says `NOT met` in red rather than quietly returning something that misses.
 node tests/verify.mjs
 ```
 
-Only this check needs node — never the page. It extracts the algorithm straight
+Only this check needs node — not the page. It extracts the algorithm straight
 out of `blee-team.html` and asserts it reaches the same totals a brute force over all
 15,400 partitions of the sample class found: 184 unlimited, 108 / 116 / 157 at
 team gaps of 2 / 4 / 6, and 71 under the 3× member cap.
