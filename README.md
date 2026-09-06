@@ -1,7 +1,6 @@
 # Team Builder (web)
 
-A browser version of `../python/swaps.py`. One self-contained file: open
-`blee-team.html` by double-clicking it. No server, no node, no build step, no network
+One self-contained file: open `blee-team.html` by double-clicking it. No server, no node, no build step, no network
 — the whole search runs in the page, and the preferences you paste never leave
 your machine.
 
@@ -33,10 +32,6 @@ lines, the plain roster (with a copy button), and the global swap count.
 under 13 cannot both hold — no arrangement of those 12 students manages it. The
 page says `NOT met` in red rather than quietly returning something that misses.
 
-**The seed does not match the Python tool.** Browsers have no seeded random, so
-this uses mulberry32 while Python uses Mersenne Twister. The same seed number
-gives different teams in the two tools; on the sample class both still reach the
-same optimal *scores*.
 
 ## Verifying the port
 
@@ -49,6 +44,3 @@ out of `blee-team.html` and asserts it reaches the same totals a brute force ove
 15,400 partitions of the sample class found: 184 unlimited, 108 / 116 / 157 at
 team gaps of 2 / 4 / 6, and 71 under the 3× member cap.
 
-Restarts default to 120 here rather than the Python tool's 50: JavaScript runs
-this search about 15× faster, and 120 is what reliably reaches the optimum on the
-tightest case (team gap 4) while still finishing in under a second.
