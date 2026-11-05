@@ -1,4 +1,4 @@
-// Verifies the algorithm inside blee-team.html against the answers the Python tool and
+// Verifies the algorithm inside genetic-team.html against the answers the Python tool and
 // a brute force over all 15400 partitions produced for the sample class.
 // Run: node tests/verify.mjs      (the page itself never needs node)
 import { readFileSync } from "node:fs";
@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const html = readFileSync(join(here, "..", "blee-team.html"), "utf8");
+const html = readFileSync(join(here, "..", "genetic-team.html"), "utf8");
 
 const code = html.split("ALGORITHM START")[1].split("ALGORITHM END")[0]
   .replace(/^[^]*?<script id="algorithm">/, "").replace(/<\/script>[^]*$/, "");

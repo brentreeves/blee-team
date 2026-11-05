@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PageRank Teams</title>
+<style>
+  :root {
+    --bg: #f7f7f5;
+    --panel: #ffffff;
+    --ink: #1b1b19;
+    --muted: #6b6a66;
+    --line: #dedcd6;
+    --accent: #7a4b2a;
+    --accent-ink: #ffffff;
+    --err: #a32e28;
+    --err-bg: #fdf0ef;
+    --ok: #2f6b46;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16161a;
+      --panel: #1e1e23;
+      --ink: #eceae4;
+      --muted: #9b988f;
+      --line: #33333a;
+      --accent: #d09a6a;
+      --accent-ink: #1b1b19;
+      --err: #f0837c;
+      --err-bg: #2e1d1c;
+      --ok: #7fc79c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2rem 1.25rem 5rem;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 60rem; margin: 0 auto; }
+  header { margin-bottom: 1.75rem; }
+  h1 { font-size: 1.6rem; margin: 0 0 .3rem; letter-spacing: -.01em; }
+  .sub { color: var(--muted); margin: 0; font-size: .95rem; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  h2 {
+    font-size: .8rem; text-transform: uppercase; letter-spacing: .09em;
+    color: var(--muted); margin: 0 0 .9rem; font-weight: 600;
+  }
+  .controls { display: flex; flex-wrap: wrap; gap: 1rem; }
+  .field { display: flex; flex-direction: column; gap: .3rem; }
+  .field label { font-size: .82rem; font-weight: 600; color: var(--muted); }
+  input[type=text], input[type=number], textarea {
+    font: inherit; color: var(--ink); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 6px; padding: .45rem .6rem;
+  }
+  input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  #size { width: 6rem; }
+  #weights { width: 14rem; font-family: var(--mono); }
+  #title { width: 16rem; }
+  textarea { width: 100%; min-height: 11rem; font-family: var(--mono); font-size: .85rem; resize: vertical; }
+  .presets { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; margin-top: .45rem; }
+  .presets span { font-size: .78rem; color: var(--muted); }
+  button {
+    font: inherit; border-radius: 6px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--ink); padding: .45rem .8rem; cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary {
+    background: var(--accent); color: var(--accent-ink); border-color: var(--accent);
+    font-weight: 600; padding: .55rem 1.4rem;
+  }
+  button.chip { padding: .2rem .55rem; font-size: .78rem; font-family: var(--mono); }
+  .row { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-top: 1rem; }
+  .err {
+    color: var(--err); background: var(--err-bg); border: 1px solid var(--err);
+    border-radius: 6px; padding: .5rem .7rem; font-size: .85rem; margin-top: .5rem;
+  }
+  .err:empty, .field .err:empty { display: none; }
+  .field .err { margin-top: .1rem; padding: .2rem 0; background: none; border: none; }
+  pre {
+    font-family: var(--mono); font-size: .95rem; line-height: 1.5;
+    margin: 0; white-space: pre; overflow-x: auto;
+  }
+  details { border-top: 1px solid var(--line); padding-top: .8rem; margin-top: .2rem; }
+  details summary { cursor: pointer; font-size: .85rem; color: var(--muted); }
+  details pre { font-size: .8rem; margin-top: .8rem; color: var(--muted); }
+  .teams { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: .75rem; }
+  .team {
+    border: 1px solid var(--line); border-radius: 8px; padding: .7rem .85rem; background: var(--bg);
+  }
+  .team h3 {
+    margin: 0 0 .4rem; font-size: .72rem; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--muted); font-weight: 600;
+  }
+  .team ol { margin: 0; padding-left: 1.2rem; font-family: var(--mono); font-size: .88rem; }
+  .team h3 { display: flex; justify-content: space-between; gap: .5rem; }
+  .team li { padding-right: .1rem; }
+  .team li > span:first-child { }
+  .mem { display: flex; justify-content: space-between; gap: 1rem; }
+  .hs { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .hs.neg { color: var(--err); font-weight: 600; }
+  .warn { color: var(--err); }
+  .total { color: var(--muted); font-weight: 500; letter-spacing: 0; text-transform: none; }
+  .unassigned { border-color: var(--err); }
+  .unassigned h3 { color: var(--err); }
+  .note { font-size: .84rem; color: var(--muted); margin: .8rem 0 0; }
+  .hidden { display: none; }
+  .stat { font-size: .84rem; color: var(--muted); margin: 0 0 .9rem; }
+  .copied { color: var(--ok); font-size: .84rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>PageRank Teams</h1>
+  <p class="sub">Copyright (c) 2026 Brent Neal Reeves
+
+  <p class="sub">Ranked preferences &rarr; weighted directed graph &rarr; PageRank &rarr; greedy teams. Everything runs in this page; nothing is uploaded.</p>
+</header>
+
+<div class="panel">
+  <h2>Input</h2>
+  <div class="controls">
+    <div class="field">
+      <label for="title">Title</label>
+      <input type="text" id="title" value="Preferences">
+    </div>
+    <div class="field">
+      <label for="size">Team size</label>
+      <input type="number" id="size" value="3" min="2" step="1">
+      <div class="err" id="size-err"></div>
+    </div>
+    <div class="field">
+      <label for="weights">Weights</label>
+      <input type="text" id="weights" value="13,8,5,3,2,1">
+      <div class="err" id="weights-err"></div>
+      <div class="presets">
+        <span>presets:</span>
+        <button class="chip" data-w="13,8,5,3,2,1">13,8,5,3,2,1</button>
+
+        <button class="chip" data-w="21,13,8,5,3,2">21,13,8,5,3,2</button>
+        <button class="chip" data-w="6,5,4,1,1,1">6,5,4,3,2,1</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:1.2rem; display:block;">
+    <label for="csv" style="font-size:.82rem; font-weight:600; color:var(--muted); display:block; margin-bottom:.3rem;">
+      Preferences CSV &mdash; <code>name,1st,2nd,3rd,4th,5th,6th</code>
+      &nbsp;&middot;&nbsp; prefix a name with <code>-</code> to say you do <strong>not</strong> want them
+    </label>
+    <textarea id="csv" spellcheck="false" placeholder="person1,choice1,choice2,choice3..."></textarea>
+    <div class="err" id="csv-err"></div>
+  </div>
+
+  <div class="row">
+    <button class="primary" id="build">Build teams</button>
+    <button id="sample">Load sample class</button>
+    <button id="sample-neg">Load sample with dislikes</button>
+  </div>
+</div>
+
+<div id="results" class="hidden">
+  <div class="panel">
+    <h2 id="rank-heading">Pagerank</h2>
+    <p class="stat" id="rank-stat"></p>
+    <pre id="ranking"></pre>
+    <details>
+      <summary>Edges (parsed rows)</summary>
+      <pre id="edges"></pre>
+    </details>
+  </div>
+
+  <div class="panel">
+    <h2>Pagerank teams</h2>
+    <p class="stat" id="team-stat"></p>
+    <div class="teams" id="teams"></div>
+    <div id="unassigned-wrap" class="hidden" style="margin-top:.75rem;">
+      <div class="team unassigned">
+        <h3>Unassigned &mdash; got none of their preferences</h3>
+        <ol id="unassigned"></ol>
+      </div>
+      <p class="note">The Python script drops these people silently; they are listed here instead. Assignment itself is unchanged.</p>
+    </div>
+    <div id="conflicts-wrap" class="hidden" style="margin-top:.75rem;">
+      <div class="team unassigned">
+        <h3><span>Negative pairings &mdash; landed with someone they marked &ldquo;-&rdquo;</span></h3>
+        <ol id="conflicts"></ol>
+      </div>
+      <p class="note">The greedy fill only consults the seed&rsquo;s own list, so a disliked person can still arrive via a third party&rsquo;s preferences. These pairings are penalized in the happiness scores above, not blocked.</p>
+    </div>
+    <div class="row">
+      <button id="copy">Copy as text</button>
+      <span class="copied hidden" id="copied">Copied.</span>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ============================== ALGORITHM START ==============================
+// Port of pagerank-teams.py, plus negative preferences. See claude.md for the
+// pinned behaviors: six-choice edge cap vs. full-list team fill,
+// last-duplicate-wins edge weights, whole-team rollback, and nx.pagerank's
+// N*tol convergence test.
+//
+// NEGATIVE PREFERENCES: a choice may be prefixed with '-' ("-Dana"), meaning
+// "do not put me on a team with this person". Its magnitude is the weight its
+// position would otherwise have earned, applied as a penalty.
+//
+// Negatives never become graph edges. PageRank normalizes each node's out-edge
+// weights into a probability distribution; a negative weight breaks that (a row
+// sum can reach zero or go negative, and scores stop summing to 1). So a '-'
+// entry is simply not an endorsement: it is withheld from the graph and carried
+// in a separate scoring map that feeds the happiness report instead.
+
+// csv.reader-equivalent for this data: comma separated, double-quoted fields honored.
+function parseCSV(text) {
+  const rows = [];
+  for (const rawLine of text.split(/\r\n|\n|\r/)) {
+    const cells = [];
+    let cur = '', inQ = false, i = 0;
+    while (i < rawLine.length) {
+      const c = rawLine[i];
+      if (inQ) {
+        if (c === '"') {
+          if (rawLine[i + 1] === '"') { cur += '"'; i += 2; continue; }
+          inQ = false; i++; continue;
+        }
+        cur += c; i++;
+      } else if (c === '"') {
+        inQ = true; i++;
+      } else if (c === ',') {
+        cells.push(cur); cur = ''; i++;
+      } else {
+        cur += c; i++;
+      }
+    }
+    cells.push(cur);
+    const trimmed = cells.map(s => s.trim());
+    if (trimmed.length === 1 && trimmed[0] === '') continue; // blank line
+    if (trimmed[0] === '') continue;                          // no name
+    while (trimmed.length && trimmed[trimmed.length - 1] === '') trimmed.pop();
+    rows.push(trimmed);
+  }
+  return rows;
+}
+
+// "-Dana" -> { name: 'Dana', negative: true };  "Dana" -> { name: 'Dana', negative: false }
+function parseChoice(cell) {
+  if (cell.startsWith('-')) return { name: cell.slice(1).trim(), negative: true };
+  return { name: cell, negative: false };
+}
+
+// rows -> graph (positive choices only) + preference lists + signed point values.
+// A repeated (source, target) keeps the LAST weight but its FIRST position,
+// matching networkx add_weighted_edges_from over an adjacency dict.
+function buildModel(rows, weights) {
+  const adj = new Map();   // source -> Map(target -> weight), insertion ordered
+  const nodes = [];        // first-seen order: source, then targets, row by row
+  const seen = new Set();
+  const addNode = n => { if (!seen.has(n)) { seen.add(n); nodes.push(n); } };
+
+  const prefs = new Map(); // name -> [{name, negative}] over the WHOLE row (row[1:])
+  const value = new Map(); // name -> Map(other -> +weights[i] | -weights[i])
+  let negativeCount = 0;
+
+  rows.forEach((row, r) => {
+    const capped = row.slice(1, 7);
+    if (capped.length > weights.length) {
+      throw new Error('Row ' + (r + 1) + ' (' + row[0] + ') has ' + capped.length +
+        ' choices but only ' + weights.length + ' weights were given.');
+    }
+    const entries = row.slice(1).map((cell, i) => {
+      const c = parseChoice(cell);
+      if (c.name === '') {
+        throw new Error('Row ' + (r + 1) + ' (' + row[0] + ') has an empty choice in position ' + (i + 1) + '.');
+      }
+      return c;
+    });
+
+    addNode(row[0]);
+    prefs.set(row[0], entries); // a repeated row for one person: last row wins
+
+    const vmap = new Map();
+    entries.forEach((c, i) => {
+      addNode(c.name);          // roster includes people named only negatively
+      if (c.negative) negativeCount++;
+      // Signed point value. Defined only where a weight exists; a name mentioned
+      // twice keeps its LAST mention, matching the edge rule.
+      if (i < weights.length && c.name !== row[0]) {
+        vmap.set(c.name, c.negative ? -weights[i] : weights[i]);
+      }
+      // Graph edge: first six positions, positive choices only.
+      if (i < 6 && !c.negative) {
+        if (!adj.has(row[0])) adj.set(row[0], new Map());
+        adj.get(row[0]).set(c.name, weights[i]); // set() on an existing key keeps its position
+      }
+    });
+    value.set(row[0], vmap);
+  });
+
+  let edgeCount = 0;
+  for (const m of adj.values()) edgeCount += m.size;
+  return { nodes, adj, edgeCount, prefs, value, negativeCount };
+}
+
+// nx.pagerank(G, alpha=0.85) — same normalization, same iteration order, same
+// convergence test (L1 error < N * tol), same 100-iteration failure.
+function pagerank(nodes, adj, alpha, maxIter, tol) {
+  const N = nodes.length;
+  if (N === 0) return { scores: new Map(), iterations: 0 };
+
+  // row-normalize out-edge weights
+  const W = new Map();
+  for (const n of nodes) {
+    const outs = adj.get(n);
+    if (!outs || outs.size === 0) { W.set(n, []); continue; }
+    let s = 0;
+    for (const w of outs.values()) s += w;
+    const norm = [];
+    for (const [t, w] of outs) norm.push([t, w / s]);
+    W.set(n, norm);
+  }
+
+  const dangling = nodes.filter(n => W.get(n).length === 0);
+  const p = 1 / N;                                // uniform personalization + dangling vector
+  let x = new Map(nodes.map(n => [n, p]));
+
+  for (let it = 0; it < maxIter; it++) {
+    const xlast = x;
+    x = new Map(nodes.map(n => [n, 0]));
+    let danglesum = 0;
+    for (const n of dangling) danglesum += xlast.get(n);
+    danglesum *= alpha;
+
+    for (const n of nodes) {
+      const xn = xlast.get(n);
+      for (const [nbr, wt] of W.get(n)) x.set(nbr, x.get(nbr) + alpha * xn * wt);
+      x.set(n, x.get(n) + danglesum * p + (1 - alpha) * p);
+    }
+
+    let err = 0;
+    for (const n of nodes) err += Math.abs(x.get(n) - xlast.get(n));
+    if (err < N * tol) return { scores: x, iterations: it + 1 };
+  }
+  throw new Error('PageRank failed to converge in ' + maxIter + ' iterations.');
+}
+
+// descending by score; ties keep node-insertion order (stable sort, as Python's
+// sorted(..., reverse=True) does).
+function ranked(nodes, scores) {
+  return nodes.map(n => [n, scores.get(n)]).sort((a, b) => b[1] - a[1]);
+}
+
+// Port of preference_teams(). Team fill walks the WHOLE preference list (row[1:]),
+// not just the first six, and skips '-' entries entirely — you are never seated
+// with someone you marked negative *from your own list*. A team that cannot be
+// filled is rolled back entirely, seed included.
+function preferenceTeams(prefs, ranklist, teamSize) {
+  const assigned = new Set();
+  const result = [];
+
+  for (const [name] of ranklist) {
+    if (assigned.has(name) || !prefs.has(name)) continue;
+
+    const team = [name];
+    assigned.add(name);
+    for (const choice of prefs.get(name)) {
+      if (choice.negative) continue;
+      if (!assigned.has(choice.name)) { team.push(choice.name); assigned.add(choice.name); }
+      if (team.length === teamSize) break;
+    }
+
+    if (team.length === teamSize) result.push(team);
+    else for (const m of team) assigned.delete(m); // rollback frees the seed too
+  }
+  return { teams: result, assigned };
+}
+
+// How happy each member is with the team they landed on: the sum of the values
+// they assigned to their teammates. A teammate they marked '-' subtracts that
+// position's weight; a teammate they never listed is worth 0.
+//
+// A disliked person can still land on your team via a THIRD party's list — the
+// greedy fill only consults the seed's preferences — and that is exactly when
+// this score goes down.
+function teamHappiness(team, value) {
+  const members = team.map(name => {
+    const vmap = value.get(name) || new Map();
+    let score = 0;
+    const disliked = [];
+    for (const other of team) {
+      if (other === name) continue;
+      const v = vmap.get(other) || 0;
+      score += v;
+      if (v < 0) disliked.push({ name: other, value: v });
+    }
+    return { name, score, disliked };
+  });
+  return { members, total: members.reduce((a, m) => a + m.score, 0) };
+}
+
+function run(csvText, weights, teamSize) {
+  const rows = parseCSV(csvText);
+  if (rows.length === 0) throw new Error('No usable rows found.');
+  const model = buildModel(rows, weights);
+  const { scores, iterations } = pagerank(model.nodes, model.adj, 0.85, 100, 1e-6);
+  const ranklist = ranked(model.nodes, scores);
+  const { teams, assigned } = preferenceTeams(model.prefs, ranklist, teamSize);
+  const unassigned = ranklist.map(r => r[0]).filter(n => !assigned.has(n));
+
+  const happiness = teams.map(t => teamHappiness(t, model.value));
+  const totalHappiness = happiness.reduce((a, h) => a + h.total, 0);
+  const conflicts = [];
+  happiness.forEach((h, i) => {
+    for (const m of h.members) {
+      for (const d of m.disliked) conflicts.push({ team: i + 1, who: m.name, other: d.name, value: d.value });
+    }
+  });
+
+  return { rows, nodes: model.nodes, edgeCount: model.edgeCount, ranklist, teams,
+           unassigned, iterations, happiness, totalHappiness, conflicts,
+           negativeCount: model.negativeCount, value: model.value };
+}
+// =============================== ALGORITHM END ===============================
+
+const SAMPLE = `aa,bb,cc,dd,ee
+bb,aa,cc,ii,jj
+cc,bb,ii,jj,kk
+dd,gg,jj,bb,cc
+ee,hh,kk,aa,dd
+ff,ii,ll,aa,ee`;
+
+// Same class, with two negative preferences. aa marks "-cc" and cc marks "-aa",
+// but bb's list seats all three together anyway, so both take the penalty.
+const SAMPLE_NEG = `aa,bb,-cc,dd,ee
+bb,aa,cc,ii,jj
+cc,bb,-aa,ii,jj
+dd,gg,jj,bb,cc
+ee,hh,kk,aa,dd
+ff,ii,ll,aa,ee`;
+
+
+const $ = id => document.getElementById(id);
+let lastText = '';
+
+function parseWeights(raw) {
+  const cleaned = raw.trim().replace(/^\[/, '').replace(/\]$/, '').trim();
+  if (cleaned === '') throw new Error('Weights are required.');
+  const parts = cleaned.split(',').map(s => s.trim());
+  const out = [];
+  for (const part of parts) {
+    if (part === '' || !/^-?\d+(\.\d+)?$/.test(part)) {
+      throw new Error('"' + part + '" is not a number.');
+    }
+    out.push(Number(part));
+  }
+  return out;
+}
+
+function fmtNum(v) { return Number.isInteger(v) ? String(v) : v.toFixed(2); }
+function fmtSigned(v) { return (v > 0 ? '+' : '') + fmtNum(v); }
+
+function clearErrors() {
+  for (const id of ['size-err', 'weights-err', 'csv-err']) $(id).textContent = '';
+}
+
+function pyRow(cells) {
+  return '[' + cells.map(c => "'" + c + "'").join(', ') + ']';
+}
+
+function build() {
+  clearErrors();
+  $('copied').classList.add('hidden');
+
+  let weights, size;
+  let ok = true;
+  try { weights = parseWeights($('weights').value); }
+  catch (e) { $('weights-err').textContent = e.message; ok = false; }
+
+  size = parseInt($('size').value, 10);
+  if (!Number.isFinite(size) || size < 2) {
+    $('size-err').textContent = 'Team size must be an integer of 2 or more.';
+    ok = false;
+  }
+  if (!ok) return;
+
+  let r;
+  try { r = run($('csv').value, weights, size); }
+  catch (e) { $('csv-err').textContent = e.message; $('results').classList.add('hidden'); return; }
+
+  const title = $('title').value.trim() || 'Preferences';
+  const weightLabel = '(weights [' + weights.join(', ') + '])';
+
+  $('rank-heading').textContent = title + ' Pagerank';
+  $('rank-stat').textContent = weightLabel + ' · ' + r.nodes.length + ' people · ' +
+    r.edgeCount + ' edges · converged in ' + r.iterations + ' iterations';
+
+  const rankLines = r.ranklist.map(([n, s]) => s.toFixed(4) + ' ' + n);
+  $('ranking').textContent = rankLines.join('\n');
+  $('edges').textContent = 'Edges start\n' + r.rows.map(pyRow).join('\n') + '\nEdges end';
+
+  $('team-stat').textContent = r.teams.length + ' teams · total happiness ' + fmtNum(r.totalHappiness) +
+    (r.negativeCount ? ' · ' + r.negativeCount + ' negative preference' + (r.negativeCount === 1 ? '' : 's') +
+      ' (' + r.conflicts.length + ' landed on the same team)' : '');
+
+  const teamsEl = $('teams');
+  teamsEl.textContent = '';
+  r.teams.forEach((team, i) => {
+    const h = r.happiness[i];
+    const div = document.createElement('div');
+    div.className = 'team';
+
+    const head = document.createElement('h3');
+    const label = document.createElement('span');
+    label.textContent = 'Team ' + (i + 1);
+    const total = document.createElement('span');
+    total.className = 'total';
+    total.textContent = 'happiness ' + fmtNum(h.total);
+    head.appendChild(label);
+    head.appendChild(total);
+
+    const ol = document.createElement('ol');
+    h.members.forEach(m => {
+      const li = document.createElement('li');
+      const wrap = document.createElement('span');
+      wrap.className = 'mem';
+      const nm = document.createElement('span');
+      nm.textContent = m.name;
+      if (m.disliked.length) {
+        const warn = document.createElement('span');
+        warn.className = 'warn';
+        warn.textContent = ' \u26a0';
+        warn.title = 'marked negative: ' + m.disliked.map(d => d.name).join(', ');
+        nm.appendChild(warn);
+      }
+      const sc = document.createElement('span');
+      sc.className = 'hs' + (m.score < 0 ? ' neg' : '');
+      sc.textContent = fmtSigned(m.score);
+      wrap.appendChild(nm);
+      wrap.appendChild(sc);
+      li.appendChild(wrap);
+      ol.appendChild(li);
+    });
+
+    div.appendChild(head);
+    div.appendChild(ol);
+    teamsEl.appendChild(div);
+  });
+
+  const cWrap = $('conflicts-wrap'), cList = $('conflicts');
+  cList.textContent = '';
+  if (r.conflicts.length) {
+    for (const c of r.conflicts) {
+      const li = document.createElement('li');
+      li.textContent = 'Team ' + c.team + ': ' + c.who + ' is with ' + c.other + ' (' + fmtSigned(c.value) + ')';
+      cList.appendChild(li);
+    }
+    cWrap.classList.remove('hidden');
+  } else {
+    cWrap.classList.add('hidden');
+  }
+
+  const uWrap = $('unassigned-wrap'), uList = $('unassigned');
+  uList.textContent = '';
+  if (r.unassigned.length) {
+    for (const n of r.unassigned) {
+      const li = document.createElement('li');
+      li.textContent = n;
+      uList.appendChild(li);
+    }
+    uWrap.classList.remove('hidden');
+  } else {
+    uWrap.classList.add('hidden');
+  }
+
+  lastText = title + ' Pagerank\n' + weightLabel + '\n' + rankLines.join('\n') +
+    '\n\nPagerank Teams\n' + r.teams.map(t => t.join(', ')).join('\n') +
+    (r.unassigned.length ? '\n\nUnassigned\n' + r.unassigned.join(', ') : '') +
+    '\n\nTeam Happiness (total ' + fmtNum(r.totalHappiness) + ')\n' +
+    r.happiness.map((h, i) => 'Team ' + (i + 1) + ' (' + fmtNum(h.total) + '): ' +
+      h.members.map(m => m.name + ' ' + fmtSigned(m.score)).join(', ')).join('\n') +
+    (r.conflicts.length ? '\n\nNegative pairings\n' +
+      r.conflicts.map(c => 'Team ' + c.team + ': ' + c.who + ' with ' + c.other +
+        ' (' + fmtSigned(c.value) + ')').join('\n') : '') + '\n';
+
+  $('results').classList.remove('hidden');
+}
+
+$('build').addEventListener('click', build);
+$('sample').addEventListener('click', () => { $('csv').value = SAMPLE; clearErrors(); build(); });
+$('sample-neg').addEventListener('click', () => { $('csv').value = SAMPLE_NEG; clearErrors(); build(); });
+for (const b of document.querySelectorAll('.chip')) {
+  b.addEventListener('click', () => { $('weights').value = b.dataset.w; });
+}
+$('copy').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(lastText); }
+  catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = lastText; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove();
+  }
+  $('copied').classList.remove('hidden');
+});
+
+// Expose for the Node acceptance test.
+if (typeof module !== 'undefined') module.exports = { run, parseCSV, parseWeights };
+</script>
+</body>
+</html>

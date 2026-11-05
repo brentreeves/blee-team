@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gale-Shapley Teams</title>
+<style>
+  :root {
+    --bg: #f7f7f5;
+    --panel: #ffffff;
+    --ink: #1b1b19;
+    --muted: #6b6a66;
+    --line: #dedcd6;
+    --accent: #2a5a7a;
+    --accent-ink: #ffffff;
+    --err: #a32e28;
+    --err-bg: #fdf0ef;
+    --ok: #2f6b46;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16161a;
+      --panel: #1e1e23;
+      --ink: #eceae4;
+      --muted: #9b988f;
+      --line: #33333a;
+      --accent: #7fb3d6;
+      --accent-ink: #12161a;
+      --err: #f0837c;
+      --err-bg: #2e1d1c;
+      --ok: #7fc79c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2rem 1.25rem 5rem;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 60rem; margin: 0 auto; }
+  header { margin-bottom: 1.75rem; }
+  h1 { font-size: 1.6rem; margin: 0 0 .3rem; letter-spacing: -.01em; }
+  .sub { color: var(--muted); margin: 0; font-size: .95rem; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  h2 {
+    font-size: .8rem; text-transform: uppercase; letter-spacing: .09em;
+    color: var(--muted); margin: 0 0 .9rem; font-weight: 600;
+  }
+  .controls { display: flex; flex-wrap: wrap; gap: 1rem; }
+  .field { display: flex; flex-direction: column; gap: .3rem; }
+  .field label, .lbl { font-size: .82rem; font-weight: 600; color: var(--muted); }
+  input[type=text], input[type=number], textarea, select {
+    font: inherit; color: var(--ink); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 6px; padding: .45rem .6rem;
+  }
+  input:focus, textarea:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  #size { width: 6rem; }
+  #weights { width: 14rem; font-family: var(--mono); }
+  #title { width: 16rem; }
+  #captains { width: 100%; font-family: var(--mono); }
+  .wide { flex-basis: 100%; }
+  textarea { width: 100%; min-height: 11rem; font-family: var(--mono); font-size: .85rem; resize: vertical; }
+  .presets { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; margin-top: .45rem; }
+  .presets span { font-size: .78rem; color: var(--muted); }
+  .hint { font-size: .78rem; color: var(--muted); }
+  button {
+    font: inherit; border-radius: 6px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--ink); padding: .45rem .8rem; cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary {
+    background: var(--accent); color: var(--accent-ink); border-color: var(--accent);
+    font-weight: 600; padding: .55rem 1.4rem;
+  }
+  button.chip { padding: .2rem .55rem; font-size: .78rem; font-family: var(--mono); }
+  .row { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-top: 1rem; }
+  .err {
+    color: var(--err); background: var(--err-bg); border: 1px solid var(--err);
+    border-radius: 6px; padding: .5rem .7rem; font-size: .85rem; margin-top: .5rem;
+  }
+  .err:empty { display: none; }
+  .field .err { margin-top: .1rem; padding: .2rem 0; background: none; border: none; }
+  pre {
+    font-family: var(--mono); font-size: .9rem; line-height: 1.5;
+    margin: 0; white-space: pre; overflow-x: auto;
+  }
+  details { border-top: 1px solid var(--line); padding-top: .8rem; margin-top: 1rem; }
+  details summary { cursor: pointer; font-size: .85rem; color: var(--muted); }
+  details pre { font-size: .8rem; margin-top: .8rem; color: var(--muted); }
+  .teams { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: .75rem; }
+  .team { border: 1px solid var(--line); border-radius: 8px; padding: .7rem .85rem; background: var(--bg); }
+  .team h3 {
+    margin: 0 0 .4rem; font-size: .72rem; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--muted); font-weight: 600;
+    display: flex; justify-content: space-between; gap: .5rem;
+  }
+  .team ol { margin: 0; padding-left: 1.2rem; font-family: var(--mono); font-size: .88rem; }
+  .mem { display: flex; justify-content: space-between; gap: 1rem; }
+  .cap { font-weight: 700; }
+  .rk { color: var(--muted); font-size: .78rem; }
+  .hs { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .hs.neg { color: var(--err); font-weight: 600; }
+  .warn { color: var(--err); }
+  .total { color: var(--muted); font-weight: 500; letter-spacing: 0; text-transform: none; }
+  .bad { border-color: var(--err); }
+  .bad h3 { color: var(--err); }
+  .note { font-size: .84rem; color: var(--muted); margin: .8rem 0 0; }
+  .hidden { display: none; }
+  .stat { font-size: .84rem; color: var(--muted); margin: 0 0 .9rem; }
+  .good { color: var(--ok); font-weight: 600; }
+  .copied { color: var(--ok); font-size: .84rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Gale-Shapley Teams</h1>
+  <p class="sub">Copyright (c) 2026 Brent Neal Reeves</p>
+  <p class="sub">Ranked preferences &rarr; pick captains &rarr; deferred acceptance (Gale-Shapley) &rarr; stable teams. Everything runs in this page; nothing is uploaded.</p>
+</header>
+
+<div class="panel">
+  <h2>Input</h2>
+  <div class="controls">
+    <div class="field">
+      <label for="title">Title</label>
+      <input type="text" id="title" value="Preferences">
+    </div>
+    <div class="field">
+      <label for="size">Team size</label>
+      <input type="number" id="size" value="3" min="2" step="1">
+      <div class="err" id="size-err"></div>
+    </div>
+    <div class="field">
+      <label for="weights">Weights</label>
+      <input type="text" id="weights" value="13,8,5,3,2,1">
+      <div class="err" id="weights-err"></div>
+      <div class="presets">
+        <span>presets:</span>
+        <button class="chip" data-w="13,8,5,3,2,1">13,8,5,3,2,1</button>
+        <button class="chip" data-w="21,13,8,5,3,2">21,13,8,5,3,2</button>
+        <button class="chip" data-w="6,5,4,3,2,1">6,5,4,3,2,1</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="proposer">Who proposes</label>
+      <select id="proposer">
+        <option value="members">Members propose (best for members)</option>
+        <option value="captains">Captains propose (best for captains)</option>
+      </select>
+    </div>
+    <div class="field wide">
+      <label for="captains">Captains</label>
+      <input type="text" id="captains" placeholder="blank = the most-wanted people, one per team">
+      <span class="hint">Optional. Comma-separated names, exactly one per team.</span>
+      <div class="err" id="captains-err"></div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:1.2rem; display:block;">
+    <label for="csv" class="lbl" style="display:block; margin-bottom:.3rem;">
+      Preferences CSV &mdash; <code>name,1st,2nd,3rd,4th,5th,6th</code>
+      &nbsp;&middot;&nbsp; prefix a name with <code>-</code> to say you do <strong>not</strong> want them
+    </label>
+    <textarea id="csv" spellcheck="false" placeholder="person1,choice1,choice2,choice3..."></textarea>
+    <div class="err" id="csv-err"></div>
+  </div>
+
+  <div class="row">
+    <button class="primary" id="build">Build teams</button>
+    <button id="sample">Load sample class</button>
+    <button id="sample-neg">Load sample with dislikes</button>
+  </div>
+</div>
+
+<div id="results" class="hidden">
+  <div class="panel">
+    <h2 id="cap-heading">Captains</h2>
+    <p class="stat" id="cap-stat"></p>
+    <pre id="popularity"></pre>
+  </div>
+
+  <div class="panel">
+    <h2>Gale-Shapley teams</h2>
+    <p class="stat" id="team-stat"></p>
+    <div class="teams" id="teams"></div>
+    <div id="blocking-wrap" class="hidden" style="margin-top:.75rem;">
+      <div class="team bad">
+        <h3>Blocking pairs &mdash; the matching is NOT stable</h3>
+        <ol id="blocking"></ol>
+      </div>
+    </div>
+    <div id="conflicts-wrap" class="hidden" style="margin-top:.75rem;">
+      <div class="team bad">
+        <h3><span>Negative pairings &mdash; landed with someone they marked &ldquo;-&rdquo;</span></h3>
+        <ol id="conflicts"></ol>
+      </div>
+      <p class="note">Gale-Shapley matches each member to a captain, not to the other members. A disliked
+        person ranks last on your captain list, but two members who dislike each other can still choose
+        the same captain. Those pairings are penalized in the happiness scores, not blocked.</p>
+    </div>
+    <div id="ignored-wrap" class="hidden">
+      <p class="note" id="ignored"></p>
+    </div>
+    <details>
+      <summary>Proposal log (deferred acceptance, step by step)</summary>
+      <pre id="log"></pre>
+    </details>
+    <details>
+      <summary>Preference lists used by the algorithm</summary>
+      <pre id="lists"></pre>
+    </details>
+    <div class="row">
+      <button id="copy">Copy as text</button>
+      <span class="copied hidden" id="copied">Copied.</span>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ============================== ALGORITHM START ==============================
+// Teams by Gale-Shapley deferred acceptance. See claude.md for the reasoning.
+//
+// Gale-Shapley needs two sides. A class is one set of people, so we make two:
+//   1. CAPTAINS — one per team. By default the T most-wanted people (most
+//      preference points received), so the class favorites anchor different
+//      teams. Can be overridden by name.
+//   2. MEMBERS  — everyone else. Each team has (capacity - 1) member seats.
+// That is the hospitals/residents ("college admissions") form of the problem,
+// which Gale & Shapley solved in the same 1962 paper as stable marriage.
+//
+// Preference lists are COMPLETE and STRICT, built from the CSV points:
+//   member m ranks captains by  value(m->c) desc, then value(c->m) desc
+//            (mutual interest breaks ties), then captain order.
+//   captain c ranks members by  value(c->m) desc, then value(m->c) desc,
+//            then popularity desc, then roster order.
+// Negative choices get negative value, so they sort to the bottom.
+//
+// Because the lists are complete and total seats == member count, everyone
+// is placed. The result is STABLE: there is no member and captain who both
+// prefer each other to what they got. Members-propose yields the stable
+// matching every member likes best; captains-propose, the one every captain
+// likes best (and every member likes least).
+
+function parseCSV(text) {
+  const rows = [];
+  for (const rawLine of text.split(/\r\n|\n|\r/)) {
+    const cells = [];
+    let cur = '', inQ = false, i = 0;
+    while (i < rawLine.length) {
+      const c = rawLine[i];
+      if (inQ) {
+        if (c === '"') {
+          if (rawLine[i + 1] === '"') { cur += '"'; i += 2; continue; }
+          inQ = false; i++; continue;
+        }
+        cur += c; i++;
+      } else if (c === '"') { inQ = true; i++; }
+      else if (c === ',') { cells.push(cur); cur = ''; i++; }
+      else { cur += c; i++; }
+    }
+    cells.push(cur);
+    const trimmed = cells.map(s => s.trim());
+    if (trimmed[0] === '') continue;                 // blank line or no name
+    while (trimmed.length && trimmed[trimmed.length - 1] === '') trimmed.pop();
+    rows.push(trimmed);
+  }
+  return rows;
+}
+
+function parseChoice(cell) {
+  if (cell.startsWith('-')) return { name: cell.slice(1).trim(), negative: true };
+  return { name: cell, negative: false };
+}
+
+// rows -> roster (people with a row, in row order) + signed point values.
+// value.get(a).get(b) = +w[i] if b is a's i-th choice, -w[i] if listed as -b.
+// A name mentioned twice keeps its LAST mention. Positions past the end of the
+// weights list are worth 0. Names with no row of their own are not on the
+// roster (nobody to seat) and are reported back as `ignored`.
+function buildModel(rows, weights) {
+  const roster = [];
+  const value = new Map();
+  const mentioned = new Set();
+  let negativeCount = 0;
+  rows.forEach((row, r) => {
+    const name = row[0];
+    if (!value.has(name)) roster.push(name);
+    const vmap = new Map();
+    row.slice(1).forEach((cell, i) => {
+      const c = parseChoice(cell);
+      if (c.name === '') {
+        throw new Error('Row ' + (r + 1) + ' (' + name + ') has an empty choice in position ' + (i + 1) + '.');
+      }
+      if (c.negative) negativeCount++;
+      mentioned.add(c.name);
+      if (c.name !== name) {
+        vmap.set(c.name, i < weights.length ? (c.negative ? -weights[i] : weights[i]) : 0);
+      }
+    });
+    value.set(name, vmap); // a repeated row for one person: last row wins
+  });
+  const onRoster = new Set(roster);
+  const ignored = [...mentioned].filter(n => !onRoster.has(n));
+  return { roster, value, negativeCount, ignored };
+}
+
+function val(value, a, b) {
+  const m = value.get(a);
+  return (m && m.get(b)) || 0;
+}
+
+// Points each person receives from everyone else's lists (negatives subtract).
+function popularity(roster, value) {
+  const pop = new Map(roster.map(n => [n, 0]));
+  for (const a of roster) for (const b of roster) if (a !== b) pop.set(b, pop.get(b) + val(value, a, b));
+  return pop;
+}
+
+// T teams; seat counts differ by at most one (the remainder is spread one per
+// team from the first team on).
+function teamCapacities(n, size) {
+  const T = Math.max(1, Math.floor(n / size));
+  const caps = new Array(T).fill(Math.floor(n / T));
+  for (let i = 0; i < n % T; i++) caps[i]++;
+  return caps;
+}
+
+function chooseCaptains(roster, pop, T, requested) {
+  if (requested && requested.length) {
+    const onRoster = new Set(roster);
+    const seen = new Set();
+    for (const c of requested) {
+      if (!onRoster.has(c)) throw new Error('Captain "' + c + '" has no row in the CSV.');
+      if (seen.has(c)) throw new Error('Captain "' + c + '" is listed twice.');
+      seen.add(c);
+    }
+    if (requested.length !== T) {
+      throw new Error('Need exactly ' + T + ' captain' + (T === 1 ? '' : 's') +
+        ' (one per team) but ' + requested.length + ' were given.');
+    }
+    return requested.slice();
+  }
+  const order = roster.map((n, i) => [n, i]);
+  order.sort((a, b) => pop.get(b[0]) - pop.get(a[0]) || a[1] - b[1]);
+  return order.slice(0, T).map(x => x[0]);
+}
+
+function buildPreferenceLists(roster, captains, value, pop) {
+  const capSet = new Set(captains);
+  const members = roster.filter(n => !capSet.has(n));
+  const rosterIdx = new Map(roster.map((n, i) => [n, i]));
+  const capIdx = new Map(captains.map((c, i) => [c, i]));
+
+  const memberPrefs = new Map();
+  for (const m of members) {
+    memberPrefs.set(m, captains.slice().sort((a, b) =>
+      val(value, m, b) - val(value, m, a) ||
+      val(value, b, m) - val(value, a, m) ||
+      capIdx.get(a) - capIdx.get(b)));
+  }
+  const captainPrefs = new Map();
+  for (const c of captains) {
+    captainPrefs.set(c, members.slice().sort((a, b) =>
+      val(value, c, b) - val(value, c, a) ||
+      val(value, b, c) - val(value, a, c) ||
+      pop.get(b) - pop.get(a) ||
+      rosterIdx.get(a) - rosterIdx.get(b)));
+  }
+  return { members, memberPrefs, captainPrefs };
+}
+
+// rank lookup: rank.get(x).get(y) = position of y in x's list (0 = favorite)
+function rankMaps(prefs) {
+  const out = new Map();
+  for (const [x, list] of prefs) out.set(x, new Map(list.map((y, i) => [y, i])));
+  return out;
+}
+
+// Deferred acceptance, members proposing. Each free member proposes to the
+// next captain on their list; the captain tentatively holds the best `seats`
+// proposals seen so far and rejects the rest. Repeat until no one is free.
+function membersPropose(members, captains, memberPrefs, captainPrefs, seats) {
+  const cRank = rankMaps(captainPrefs);
+  const next = new Map(members.map(m => [m, 0]));
+  const held = new Map(captains.map(c => [c, []]));
+  const free = members.slice();
+  const log = [];
+  let proposals = 0;
+  while (free.length) {
+    const m = free.shift();
+    const list = memberPrefs.get(m);
+    const k = next.get(m);
+    if (k >= list.length) continue; // cannot happen with complete lists and enough seats
+    const c = list[k];
+    next.set(m, k + 1);
+    proposals++;
+    const h = held.get(c);
+    h.push(m);
+    h.sort((a, b) => cRank.get(c).get(a) - cRank.get(c).get(b));
+    if (h.length > seats.get(c)) {
+      const out = h.pop();
+      free.push(out);
+      log.push(out === m
+        ? m + ' -> ' + c + ': rejected'
+        : m + ' -> ' + c + ': held, bumps ' + out);
+    } else {
+      log.push(m + ' -> ' + c + ': held');
+    }
+  }
+  return { held, log, proposals };
+}
+
+// Deferred acceptance, captains proposing. A captain with an open seat
+// proposes to the next member on their list; the member keeps the best
+// captain proposal so far and rejects the other.
+function captainsPropose(members, captains, memberPrefs, captainPrefs, seats) {
+  const mRank = rankMaps(memberPrefs);
+  const next = new Map(captains.map(c => [c, 0]));
+  const held = new Map(captains.map(c => [c, []]));
+  const holder = new Map(); // member -> captain
+  const free = captains.filter(c => seats.get(c) > 0);
+  const log = [];
+  let proposals = 0;
+  while (free.length) {
+    const c = free.shift();
+    const list = captainPrefs.get(c);
+    while (held.get(c).length < seats.get(c) && next.get(c) < list.length) {
+      const m = list[next.get(c)];
+      next.set(c, next.get(c) + 1);
+      proposals++;
+      const cur = holder.get(m);
+      if (cur === undefined) {
+        holder.set(m, c); held.get(c).push(m);
+        log.push(c + ' -> ' + m + ': held');
+      } else if (mRank.get(m).get(c) < mRank.get(m).get(cur)) {
+        holder.set(m, c); held.get(c).push(m);
+        held.set(cur, held.get(cur).filter(x => x !== m));
+        if (!free.includes(cur)) free.push(cur);
+        log.push(c + ' -> ' + m + ': held, ' + m + ' drops ' + cur);
+      } else {
+        log.push(c + ' -> ' + m + ': rejected');
+      }
+    }
+  }
+  const cRank = rankMaps(captainPrefs);
+  for (const [c, h] of held) h.sort((a, b) => cRank.get(c).get(a) - cRank.get(c).get(b));
+  return { held, log, proposals };
+}
+
+// A blocking pair (m, c): m prefers c to their own captain, and c has an empty
+// seat or prefers m to someone c holds. None means the matching is stable.
+function blockingPairs(members, captains, memberPrefs, captainPrefs, seats, held) {
+  const mRank = rankMaps(memberPrefs), cRank = rankMaps(captainPrefs);
+  const capOf = new Map();
+  for (const [c, h] of held) for (const m of h) capOf.set(m, c);
+  const pairs = [];
+  for (const m of members) {
+    const mine = capOf.get(m);
+    for (const c of captains) {
+      if (c === mine) continue;
+      if (mine !== undefined && mRank.get(m).get(c) > mRank.get(m).get(mine)) continue;
+      const h = held.get(c);
+      const worst = h.length ? Math.max(...h.map(x => cRank.get(c).get(x))) : -1;
+      if (h.length < seats.get(c) || cRank.get(c).get(m) < worst) pairs.push({ member: m, captain: c });
+    }
+  }
+  return pairs;
+}
+
+function teamHappiness(team, value) {
+  const members = team.map(name => {
+    let score = 0;
+    const disliked = [];
+    for (const other of team) {
+      if (other === name) continue;
+      const v = val(value, name, other);
+      score += v;
+      if (v < 0) disliked.push({ name: other, value: v });
+    }
+    return { name, score, disliked };
+  });
+  return { members, total: members.reduce((a, m) => a + m.score, 0) };
+}
+
+// opts: { weights, size, proposer: 'members'|'captains', captains: [names] }
+function run(csvText, opts) {
+  const rows = parseCSV(csvText);
+  if (rows.length === 0) throw new Error('No usable rows found.');
+  const model = buildModel(rows, opts.weights);
+  const { roster, value } = model;
+  if (roster.length < 2) throw new Error('Need at least two people with rows.');
+
+  const pop = popularity(roster, value);
+  const caps = teamCapacities(roster.length, opts.size);
+  const captains = chooseCaptains(roster, pop, caps.length, opts.captains);
+  const seats = new Map(captains.map((c, i) => [c, caps[i] - 1]));
+  const { members, memberPrefs, captainPrefs } = buildPreferenceLists(roster, captains, value, pop);
+
+  const algo = opts.proposer === 'captains' ? captainsPropose : membersPropose;
+  const { held, log, proposals } = algo(members, captains, memberPrefs, captainPrefs, seats);
+  const blocking = blockingPairs(members, captains, memberPrefs, captainPrefs, seats, held);
+
+  const mRank = rankMaps(memberPrefs);
+  const teams = captains.map(c => [c, ...held.get(c)]);
+  const captainChoice = new Map(); // member -> 1-based rank of the captain they got
+  for (const c of captains) for (const m of held.get(c)) captainChoice.set(m, mRank.get(m).get(c) + 1);
+
+  const happiness = teams.map(t => teamHappiness(t, value));
+  const totalHappiness = happiness.reduce((a, h) => a + h.total, 0);
+  const conflicts = [];
+  happiness.forEach((h, i) => {
+    for (const m of h.members) for (const d of m.disliked) {
+      conflicts.push({ team: i + 1, who: m.name, other: d.name, value: d.value });
+    }
+  });
+  const placed = new Set(teams.flat());
+  const unassigned = roster.filter(n => !placed.has(n));
+
+  return { rows, roster, pop, captains, members, memberPrefs, captainPrefs, seats,
+           teams, captainChoice, log, proposals, blocking, happiness, totalHappiness,
+           conflicts, unassigned, negativeCount: model.negativeCount, ignored: model.ignored,
+           value, proposer: opts.proposer === 'captains' ? 'captains' : 'members' };
+}
+// =============================== ALGORITHM END ===============================
+
+// The CS374 class shape with the names replaced.
+const SAMPLE = `Ava,Kit,Ben,Dee,Ivy,Jay,Fay
+Ben,Eli,Gus,Lou,Dee,Hal,Cal
+Cal,Ivy,Dee,Ava,Fay,Ben,Hal
+Dee,Ivy,Ben,Hal,Eli,Lou,Cal
+Eli,Gus,Ben,Cal,Dee,Hal,Gus
+Fay,Dee,Kit,Hal,Ben,Ava,Ivy
+Gus,Eli,Ben,Dee,Lou,Hal,Cal
+Hal,Cal,Ben,Fay,Ivy,Eli,Jay
+Ivy,Dee,Cal,Ben,Hal,Fay,Jay
+Jay,Fay,Lou,Kit,Hal,Ava,Cal
+Kit,Ava,Ben,Dee,Fay,Ivy,Jay
+Lou,Jay,Ben,Ivy,Fay,Kit,Eli`;
+
+// Same class with three dislikes in last place. A disliked captain drops to the
+// bottom of that member's captain list; dislikes between two members are only
+// scored, since Gale-Shapley matches members to captains, not to each other.
+const SAMPLE_NEG = `Ava,Kit,Ben,Dee,Ivy,Jay,Fay
+Ben,Eli,Gus,Lou,Dee,Hal,Cal
+Cal,Ivy,Dee,Ava,Fay,Ben,-Gus
+Dee,Ivy,Ben,Hal,Eli,Lou,Cal
+Eli,Gus,Ben,Cal,Dee,Hal,Gus
+Fay,Dee,Kit,Hal,Ben,Ava,Ivy
+Gus,Eli,Ben,Dee,Lou,Hal,-Cal
+Hal,Cal,Ben,Fay,Ivy,Eli,Jay
+Ivy,Dee,Cal,Ben,Hal,Fay,-Jay
+Jay,Fay,Lou,Kit,Hal,Ava,Cal
+Kit,Ava,Ben,Dee,Fay,Ivy,Jay
+Lou,Jay,Ben,Ivy,Fay,Kit,Eli`;
+
+const $ = id => document.getElementById(id);
+let lastText = '';
+
+function parseWeights(raw) {
+  const cleaned = raw.trim().replace(/^\[/, '').replace(/\]$/, '').trim();
+  if (cleaned === '') throw new Error('Weights are required.');
+  return cleaned.split(',').map(s => s.trim()).map(part => {
+    if (!/^-?\d+(\.\d+)?$/.test(part)) throw new Error('"' + part + '" is not a number.');
+    return Number(part);
+  });
+}
+
+function parseCaptains(raw) {
+  return raw.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+function fmtNum(v) { return Number.isInteger(v) ? String(v) : v.toFixed(2); }
+function fmtSigned(v) { return (v > 0 ? '+' : '') + fmtNum(v); }
+function ordinal(n) {
+  const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+function clearErrors() {
+  for (const id of ['size-err', 'weights-err', 'captains-err', 'csv-err']) $(id).textContent = '';
+}
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+function fillList(wrapId, listId, items) {
+  const list = $(listId);
+  list.textContent = '';
+  for (const t of items) list.appendChild(el('li', '', t));
+  $(wrapId).classList.toggle('hidden', items.length === 0);
+}
+
+function build() {
+  clearErrors();
+  $('copied').classList.add('hidden');
+
+  let weights, ok = true;
+  try { weights = parseWeights($('weights').value); }
+  catch (e) { $('weights-err').textContent = e.message; ok = false; }
+  const size = parseInt($('size').value, 10);
+  if (!Number.isFinite(size) || size < 2) {
+    $('size-err').textContent = 'Team size must be an integer of 2 or more.';
+    ok = false;
+  }
+  if (!ok) return;
+
+  let r;
+  try {
+    r = run($('csv').value, {
+      weights, size, proposer: $('proposer').value, captains: parseCaptains($('captains').value),
+    });
+  } catch (e) {
+    const target = /^Captain|^Need exactly/.test(e.message) ? 'captains-err' : 'csv-err';
+    $(target).textContent = e.message;
+    $('results').classList.add('hidden');
+    return;
+  }
+
+  const title = $('title').value.trim() || 'Preferences';
+  const weightLabel = '(weights [' + weights.join(', ') + '])';
+  const capSet = new Set(r.captains);
+  const manual = parseCaptains($('captains').value).length > 0;
+
+  $('cap-heading').textContent = title + ' Captains';
+  $('cap-stat').textContent = weightLabel + ' · ' + r.roster.length + ' people · ' + r.captains.length +
+    ' teams · captains ' + (manual ? 'chosen by hand' : 'are the most-wanted (points received)');
+  const byPop = r.roster.slice().sort((a, b) => r.pop.get(b) - r.pop.get(a));
+  const popLines = byPop.map(n => String(fmtNum(r.pop.get(n))).padStart(4) + '  ' + n +
+    (capSet.has(n) ? '  ★ captain' : ''));
+  $('popularity').textContent = popLines.join('\n');
+
+  const stable = r.blocking.length === 0;
+  const stat = $('team-stat');
+  stat.textContent = '';
+  stat.append(r.proposer === 'members' ? 'Members propose' : 'Captains propose');
+  stat.append(' · ' + r.proposals + ' proposals · ');
+  stat.appendChild(el('span', stable ? 'good' : 'warn', stable ? 'stable' : 'NOT stable'));
+  stat.append(' · total happiness ' + fmtNum(r.totalHappiness));
+  if (r.negativeCount) {
+    stat.append(' · ' + r.negativeCount + ' negative preference' + (r.negativeCount === 1 ? '' : 's') +
+      ' (' + r.conflicts.length + ' landed on the same team)');
+  }
+
+  const teamsEl = $('teams');
+  teamsEl.textContent = '';
+  r.teams.forEach((team, i) => {
+    const h = r.happiness[i];
+    const div = el('div', 'team');
+    const head = el('h3');
+    head.appendChild(el('span', '', 'Team ' + (i + 1)));
+    head.appendChild(el('span', 'total', 'happiness ' + fmtNum(h.total)));
+    const ol = el('ol');
+    h.members.forEach(m => {
+      const li = el('li');
+      const wrap = el('span', 'mem');
+      const nm = el('span', capSet.has(m.name) ? 'cap' : '', m.name);
+      if (capSet.has(m.name)) nm.appendChild(el('span', 'rk', '  captain'));
+      else nm.appendChild(el('span', 'rk', '  ' + ordinal(r.captainChoice.get(m.name)) + ' captain'));
+      if (m.disliked.length) {
+        const warn = el('span', 'warn', ' ⚠');
+        warn.title = 'marked negative: ' + m.disliked.map(d => d.name).join(', ');
+        nm.appendChild(warn);
+      }
+      wrap.appendChild(nm);
+      wrap.appendChild(el('span', 'hs' + (m.score < 0 ? ' neg' : ''), fmtSigned(m.score)));
+      li.appendChild(wrap);
+      ol.appendChild(li);
+    });
+    div.appendChild(head);
+    div.appendChild(ol);
+    teamsEl.appendChild(div);
+  });
+
+  fillList('blocking-wrap', 'blocking', r.blocking.map(b =>
+    b.member + ' and captain ' + b.captain + ' would both rather be together'));
+  fillList('conflicts-wrap', 'conflicts', r.conflicts.map(c =>
+    'Team ' + c.team + ': ' + c.who + ' is with ' + c.other + ' (' + fmtSigned(c.value) + ')'));
+
+  $('ignored').textContent = r.ignored.length
+    ? 'Named in a list but no row of their own, so not seated: ' + r.ignored.join(', ') : '';
+  $('ignored-wrap').classList.toggle('hidden', r.ignored.length === 0);
+
+  $('log').textContent = r.log.map((l, i) => String(i + 1).padStart(3) + '. ' + l).join('\n');
+  $('lists').textContent =
+    'Members rank captains\n' +
+    r.members.map(m => '  ' + m + ': ' + r.memberPrefs.get(m).join(' > ')).join('\n') +
+    '\n\nCaptains rank members (seats: ' + r.captains.map(c => c + ' ' + r.seats.get(c)).join(', ') + ')\n' +
+    r.captains.map(c => '  ' + c + ': ' + r.captainPrefs.get(c).join(' > ')).join('\n');
+
+  lastText = title + ' Gale-Shapley Teams\n' + weightLabel + ' · ' +
+    (r.proposer === 'members' ? 'members propose' : 'captains propose') + ' · ' +
+    (stable ? 'stable' : 'NOT stable') + '\n\n' +
+    r.happiness.map((h, i) => 'Team ' + (i + 1) + ' (' + fmtNum(h.total) + '): ' +
+      h.members.map(m => m.name + (capSet.has(m.name) ? '*' : '') + ' ' + fmtSigned(m.score)).join(', ')).join('\n') +
+    '\n\n* captain · total happiness ' + fmtNum(r.totalHappiness) +
+    (r.conflicts.length ? '\n\nNegative pairings\n' + r.conflicts.map(c => 'Team ' + c.team + ': ' +
+      c.who + ' with ' + c.other + ' (' + fmtSigned(c.value) + ')').join('\n') : '') + '\n';
+
+  $('results').classList.remove('hidden');
+}
+
+$('build').addEventListener('click', build);
+$('sample').addEventListener('click', () => { $('csv').value = SAMPLE; clearErrors(); build(); });
+$('sample-neg').addEventListener('click', () => { $('csv').value = SAMPLE_NEG; clearErrors(); build(); });
+$('proposer').addEventListener('change', () => { if ($('csv').value.trim()) build(); });
+for (const b of document.querySelectorAll('.chip')) {
+  b.addEventListener('click', () => { $('weights').value = b.dataset.w; });
+}
+$('copy').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(lastText); }
+  catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = lastText; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove();
+  }
+  $('copied').classList.remove('hidden');
+});
+</script>
+</body>
+</html>

@@ -1,6 +1,6 @@
-# The Blee Team
+# The Blee Team / genetic
 
-One self-contained file: open `blee-team.html` by double-clicking it. 
+One self-contained file: open `genetic-team.html` by double-clicking it. 
 No server, no node, no build step, no network — the whole search runs in the page, and the preferences you paste never leave your machine.
 
 ## Use
@@ -22,7 +22,7 @@ Or press **Load sample class**, set the fields, and press **Build Teams**.
 | Exchanges |  Random swaps tried per start |
 | Restarts |  Fresh random starts; the best result wins |
 
-## Algorith Notes
+## Algorithm Notes
 
 **Limits can be impossible.** On the sample class, a 3× member cap and a team gap
 under 13 cannot both hold — no arrangement of those 12 students manages it. The
@@ -36,7 +36,7 @@ node tests/verify.mjs
 ```
 
 Only this check needs node — not the page. It extracts the algorithm straight
-out of `blee-team.html` and asserts it reaches the same totals a brute force over all
+out of `genetic-team.html` and asserts it reaches the same totals a brute force over all
 15,400 partitions of the sample class found: 184 unlimited, 108 / 116 / 157 at
 team gaps of 2 / 4 / 6, and 71 under the 3× member cap.
 
