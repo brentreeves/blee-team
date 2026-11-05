@@ -1,42 +1,19 @@
-# The Blee Team / genetic
+# The Blee Team 
 
-One self-contained file: open `genetic-team.html` by double-clicking it. 
-No server, no node, no build step, no network — the whole search runs in the page, and the preferences you paste never leave your machine.
+Three ways to make teams from a list of preferences.
 
-## Use
+Each folder has an html file which has no server connections, doesn't call home.
 
-Paste the preference CSV (one row per person: `name, 1st choice, 2nd choice, ...`).
-Prefix a choice with `-` when the person does not want that teammate; the
-negative choice uses the same weight as its position, but subtracts from
-their happiness instead of adding to it when they are on the same team.
-Or press **Load sample class**, set the fields, and press **Build Teams**.
+## genetic
 
-| Field | Meaning |
-| --- | --- |
-| Title |  Heading on the report |
-| Weights per choice |  Points for 1st, 2nd, … choice. Off the list scores 0 |
-| Team size | `People per team; the last team takes the remainder |
-| Member cap |  Nobody more than this many times happier than anybody else. 0 turns it off |
-| Team gap |  Largest point gap allowed between strongest and weakest team. Blank = no limit |
-| Seed |  Blank picks a random one, shown in the report |
-| Exchanges |  Random swaps tried per start |
-| Restarts |  Fresh random starts; the best result wins |
+Switch 2 random team members and see if the happiness increases.  Repeat a zillion times to achieve a... local maximum!
 
-## Algorithm Notes
+## Gayle-Shapley
 
-**Limits can be impossible.** On the sample class, a 3× member cap and a team gap
-under 13 cannot both hold — no arrangement of those 12 students manages it. The
-page says `NOT met` in red rather than quietly returning something that misses.
+The most-requested folks get to be team-captains and choose their team-members, one at a time.
 
+## pagerank-web
 
-## Verifying the port
+Pretend that the preference list is a web of html pages.
 
-```
-node tests/verify.mjs
-```
-
-Only this check needs node — not the page. It extracts the algorithm straight
-out of `genetic-team.html` and asserts it reaches the same totals a brute force over all
-15,400 partitions of the sample class found: 184 unlimited, 108 / 116 / 157 at
-team gaps of 2 / 4 / 6, and 71 under the 3× member cap.
-
+Rank order them and then let the highest ranked players get their preferences.
