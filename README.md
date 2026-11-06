@@ -2,8 +2,7 @@
 
 Three ways to make teams from a list of preferences that looks like so:
 
-name1,choice1,choice2,choice3,choice4,choice5,choice6
-
+name1,choice1,choice2,choice3,choice4,choice5,choice6  
 name2,choice1,choice2,choice3,choice4,choice5,choice6
 
 See prefs.txt file as an example.
