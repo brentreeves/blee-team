@@ -4,11 +4,13 @@ Three ways to make teams from a list of preferences that looks like so:
 
 name1,choice1,choice2,choice3,choice4,choice5,choice6  
 name2,choice1,choice2,choice3,choice4,choice5,choice6
+...
 
 See prefs.txt file as an example.
 
+Each algorithm is implemented by a stand-alone html file which has no server connections, doesn't call home.
 
-Each folder has an html file which has no server connections, doesn't call home.
+To use, drag and drop the prefs file onto an html file.
 
 ## genetic
 
