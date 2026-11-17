@@ -61,7 +61,7 @@ All three pages accept it.
 A "-" choice costs the same weight its position would have earned. With the default weights
 13,8,5,3,2,1,1,1, `-Nancy` in 1st place costs 13 points and `-Nancy` in 8th place costs 1.
 
-So place them in the order of importance. If your most important goal is to NOT have Nancy on your team, then your preference list should be:
+So place them in the order of importance. If your most important goal is to NOT have Nancy on your team, then your preference list should be:  
 `Me,-Nancy,Bubba,DipStick,LiverLips`
 
 But if you merely slightly prefer they not be on your team, then place them at the end, like so:
