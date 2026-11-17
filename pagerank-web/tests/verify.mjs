@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Brent Neal Reeves
+// SPDX-License-Identifier: MIT  (see LICENSE at the repository root)
 // Extracts the ALGORITHM block out of pagerank.html and exercises it in Node.
 // Run:  node tests/verify.mjs
 import fs from 'node:fs';

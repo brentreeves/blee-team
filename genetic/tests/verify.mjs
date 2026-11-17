@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Brent Neal Reeves
+// SPDX-License-Identifier: MIT  (see LICENSE at the repository root)
 // Verifies the algorithm inside genetic-team.html against the answers the Python tool and
 // a brute force over all 15400 partitions produced for the sample class.
 // Run: node tests/verify.mjs      (the page itself never needs node)

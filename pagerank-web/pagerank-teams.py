@@ -1,7 +1,8 @@
 #! /usr/bin/python3
 
 # Fall '26
-# Brent Reeves
+# Copyright (c) 2026 Brent Neal Reeves
+# SPDX-License-Identifier: MIT  (see LICENSE at the repository root)
 # Student Team preference -> pagerank -> teams
 #
 import networkx as nx

@@ -1,4 +1,27 @@
 <!DOCTYPE html>
+<!--
+MIT License
+
+Copyright (c) 2026 Brent Neal Reeves
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -124,7 +147,7 @@
 
 <header>
   <h1>PageRank Teams</h1>
-  <p class="sub">Copyright (c) 2026 Brent Neal Reeves
+  <p class="sub">Copyright &copy; 2026 Brent Neal Reeves &middot; MIT License</p>
 
   <p class="sub">Ranked preferences &rarr; weighted directed graph &rarr; PageRank &rarr; greedy teams. Everything runs in this page; nothing is uploaded.</p>
 </header>
@@ -168,6 +191,8 @@
     <button class="primary" id="build">Build teams</button>
     <button id="sample">Load sample class</button>
     <button id="sample-neg">Load sample with dislikes</button>
+    <button id="load-file">Load file&hellip;</button>
+    <input type="file" id="file-input" accept=".csv,.txt,text/csv,text/plain" hidden>
   </div>
 </div>
 
@@ -627,12 +652,25 @@ $('copy').addEventListener('click', async () => {
 
 // Expose for the Node acceptance test.
 if (typeof module !== 'undefined') module.exports = { run, parseCSV, parseWeights };
-// Drag a .csv / .txt file onto the panel holding the CSV box to load it.
-// Anywhere else on the page, a dropped file is ignored instead of the browser
-// navigating away to open it.
-(function enableCsvDrop() {
+// Load a .csv / .txt file into the CSV box, either by dropping it onto the
+// panel holding the box or with the "Load file..." button. Anywhere else on
+// the page, a dropped file is ignored instead of the browser navigating away
+// to open it.
+(function enableCsvFiles() {
   const box = document.getElementById("csv");
   const zone = box.closest(".panel") || box;
+  async function loadCsvFile(file) {
+    if (!file) return;
+    box.value = (await file.text()).replace(/^\uFEFF/, "").trim();
+    box.dispatchEvent(new Event("input", { bubbles: true }));
+    box.focus();
+  }
+  const picker = document.getElementById("file-input");
+  document.getElementById("load-file").addEventListener("click", () => picker.click());
+  picker.addEventListener("change", async () => {
+    await loadCsvFile(picker.files[0]);
+    picker.value = ""; // so choosing the same file again still loads it
+  });
   const hasFiles = (e) => e.dataTransfer && [...e.dataTransfer.types].includes("Files");
   let depth = 0;
   window.addEventListener("dragover", (e) => { if (hasFiles(e)) e.preventDefault(); });
@@ -654,11 +692,7 @@ if (typeof module !== 'undefined') module.exports = { run, parseCSV, parseWeight
     e.stopPropagation();
     depth = 0;
     zone.classList.remove("dropping");
-    const file = e.dataTransfer.files[0];
-    if (!file) return;
-    box.value = (await file.text()).replace(/^\uFEFF/, "").trim();
-    box.dispatchEvent(new Event("input", { bubbles: true }));
-    box.focus();
+    await loadCsvFile(e.dataTransfer.files[0]);
   });
 })();
 </script>

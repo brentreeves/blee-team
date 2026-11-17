@@ -20,8 +20,9 @@ Each algorithm is implemented by a stand-alone html file which has no server con
 2. With the page open, drag a prefs file from Finder (or Explorer) and drop it onto the page's
    **Preferences** section. In pagerank and Gale-Shapley that section is the **Input** panel. The
    section gets a dashed outline while you hover, and on release the file's text fills the CSV box,
-   replacing whatever was there. You can also paste the text into the box instead.
-3. Adjust the settings if you like, then press **Build Teams**. Dropping a file does not start the
+   replacing whatever was there. Or press **Load file…** (next to the sample buttons) and pick the
+   file, or paste the text into the box.
+3. Adjust the settings if you like, then press **Build Teams**. Loading a file does not start the
    build by itself.
 
 Dropping the prefs file onto the html file's icon in Finder does **not** work: the page has to be
@@ -67,7 +68,8 @@ But if you merely slightly prefer they not be on your team, then place them at t
 `Me,Bubba,DipStick,LiverLips,-Nancy`
 
 If you list someone more than once, only the **first** mention counts, whether it is positive or negative.
-`Me,Bubba,DipStick,-Bubba` still wants Bubba (13 points). `Me,-Bubba,DipStick,Bubba` still does not (−13).
+`Me,Bubba,DipStick,-Bubba` still wants Bubba (13 points).  
+`Me,-Bubba,DipStick,Bubba` still does not (−13).  
 Later mentions are ignored, and the choices after them keep their own positions.
 
 What each page does with it:
@@ -84,3 +86,8 @@ What each page does with it:
 ## Tests
 
 Each folder has `tests/verify.mjs`. Run it with `node <folder>/tests/verify.mjs`. The tests use `prefs.txt`.
+
+## License
+
+MIT License, Copyright (c) 2026 Brent Neal Reeves. See [LICENSE](LICENSE). Each html file also carries
+the full license text in a comment at the top, so a page copied on its own keeps its notice.
