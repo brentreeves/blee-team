@@ -7,11 +7,36 @@ name2,choice1,choice2,choice3,choice4,choice5,choice6,choice7,choice8
 ...
 
 Up to 8 choices count in all three pages. Fewer is fine. Choices past the 8th are ignored, and so is
-any choice past the end of the weights list. See prefs.txt file as an example.
+any choice past the end of the weights list.
 
 Each algorithm is implemented by a stand-alone html file which has no server connections, doesn't call home.
 
-To use, drag and drop the prefs file onto an html file.
+## How to use
+
+1. Open one of the html files in a browser: double-click it, or drag the html file onto a browser window.
+   - `genetic/genetic-team.html`
+   - `Gale-Shapley/gale-shapley.html`
+   - `pagerank-web/pagerank.html`
+2. With the page open, drag a prefs file from Finder (or Explorer) and drop it onto the page's
+   **Preferences** section. In pagerank and Gale-Shapley that section is the **Input** panel. The
+   section gets a dashed outline while you hover, and on release the file's text fills the CSV box,
+   replacing whatever was there. You can also paste the text into the box instead.
+3. Adjust the settings if you like, then press **Build Teams**. Dropping a file does not start the
+   build by itself.
+
+Dropping the prefs file onto the html file's icon in Finder does **not** work: the page has to be
+open first. A file dropped on another part of the open page is ignored, rather than the browser
+leaving the page to show the file.
+
+### Sample prefs files
+
+All use the same anonymized 12-person class (`aa` … `ll`):
+
+| File | What it shows |
+| --- | --- |
+| `prefs.csv` | The plain class: six choices per person. Same content as `prefs.txt`, which the tests read |
+| `prefs-negatives.csv` | The same class with three `-` choices (aa, ii and kk each mark someone they don't want) |
+| `prefs-varied.csv` | Uneven lists: some people give six choices, some only one or two, some rows have trailing commas |
 
 ## genetic
 

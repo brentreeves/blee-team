@@ -1,0 +1,12 @@
+aa,kk,bb,dd,ii,jj,ff
+bb,ee,gg,ll,dd,hh,cc
+cc,ii,dd,aa,ff,bb,hh
+dd,ii,bb,hh,ee,ll,cc
+ee,gg,bb,cc,dd,hh,gg
+ff,dd,kk,hh,bb,aa,ii
+gg,ee,bb,dd,ll,hh,cc
+hh,cc,bb,ff,ii,ee,jj
+ii,dd,cc,bb,hh,ff,jj
+jj,ff,ll,kk,hh,aa,cc
+kk,aa,bb,dd,ff,ii,jj
+ll,jj,bb,ii,ff,kk,ee
