@@ -10,7 +10,7 @@ import sys
 import argparse
 
 # csv has preferences for each person:
-# name1, first-choice, 2nd-choice... 6th-choice
+# name1, first-choice, 2nd-choice... 8th-choice
 # name2...
 def read_csv_from_stdin():
     # sys.stdin behaves like an open file object
@@ -22,10 +22,15 @@ def read_csv_from_stdin():
 
 # in: preferences array
 # out: weighted tuples (name1, name2, weight)
+# a name listed twice counts only at its first position
 def tuples(array_2d, in_weights):
     tuples = []
     for row in array_2d:
-        tuples.extend((row[0], item, in_weights[index]) for index, item in enumerate(row[1:7]))
+        seen = set()
+        for index, item in enumerate(row[1:9]):
+            if item not in seen:
+                seen.add(item)
+                tuples.append((row[0], item, in_weights[index]))
     return tuples
 
 # pretty print preferences
@@ -86,15 +91,15 @@ def teams(sorted_list, team_size):
 # --------------------------------------------------------------------------------------
 
 def main(argv):
-    # in_weights = [6, 5, 4, 3, 2, 1]   # linear
-    # in_weights = [21, 13, 8, 5, 3, 2] # reverse Fibonacci start 21
-    in_weights = [13, 8, 5, 3, 2, 1]  # reverse Fibonacci start 18
+    # in_weights = [8, 7, 6, 5, 4, 3, 2, 1]   # linear
+    # in_weights = [21, 13, 8, 5, 3, 2, 1, 1] # reverse Fibonacci start 21
+    in_weights = [13, 8, 5, 3, 2, 1, 1, 1]  # reverse Fibonacci start 13
     in_title = '' 
     in_size = 3
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--size", type=int, help="Size of Teams", default=3)
-    parser.add_argument("-w", "--weights", help="comma-separated list of weights", default="[13,8,5,3,2,1]")
+    parser.add_argument("-w", "--weights", help="comma-separated list of weights", default="[13,8,5,3,2,1,1,1]")
     parser.add_argument("-t", "--title",  help="Class title", default="Preferences")
 
     args = parser.parse_args()

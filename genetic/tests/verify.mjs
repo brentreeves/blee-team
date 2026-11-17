@@ -13,8 +13,8 @@ const code = html.split("ALGORITHM START")[1].split("ALGORITHM END")[0]
 new Function(code)();
 const TB = globalThis.TeamBuilder;
 
-const sample = html.split('<script id="sample-data" type="text/plain">')[1]
-  .split("</script>")[0].trim();
+// the 12-person class (anonymized) the brute-force optima below were computed on
+const sample = readFileSync(join(here, "..", "..", "prefs.txt"), "utf8").trim();
 
 const WEIGHTS = [13, 8, 5, 3, 2, 1];
 let failures = 0;
@@ -30,6 +30,12 @@ const small = TB.preferenceMap(ROWS, WEIGHTS);
 check("preference weights by position", small.get("a").get("b") === 13 && small.get("a").get("c") === 8);
 check("duplicate choice keeps best weight",
   TB.preferenceMap(TB.parseCsv("a,b,b,c"), WEIGHTS).get("a").get("b") === 13);
+check("duplicate: positive first stays positive",
+  TB.preferenceMap(TB.parseCsv("a,b,c,-b"), WEIGHTS).get("a").get("b") === 13);
+check("duplicate: negative first stays negative",
+  TB.preferenceMap(TB.parseCsv("a,-b,c,b"), WEIGHTS).get("a").get("b") === -13);
+check("duplicate keeps later choices at their own positions",
+  TB.preferenceMap(TB.parseCsv("a,b,b,c"), WEIGHTS).get("a").get("c") === 5);
 check("self and blanks ignored",
   TB.preferenceMap(TB.parseCsv("a,a,,b"), WEIGHTS).get("a").get("b") === 5);
 check("negative preference uses the matching weight",
@@ -85,6 +91,47 @@ check("incomplete preference data still produces a positive result",
   TB.totalHappiness(suppliedResult.teams, supplied) > 0 &&
   TB.constraintPenalty(suppliedResult.teams, supplied, 6, null) === 0,
   `got ${TB.totalHappiness(suppliedResult.teams, supplied)}`);
+
+// --- up to eight preferences count, a 9th does not ---
+{
+  const W8 = [13, 8, 5, 3, 2, 1, 1, 1];
+  const NINE = ["b", "c", "d", "e", "f", "g", "h", "i", "j"];
+  check("MAX_CHOICES is 8", TB.MAX_CHOICES === 8, `got ${TB.MAX_CHOICES}`);
+  const eight = TB.preferenceMap(TB.parseCsv("a," + NINE.join(",") + "\nz," + NINE.map((n) => "-" + n).join(",")), [...W8, 9]);
+  const got = NINE.slice(0, 8).map((n) => eight.get("a").get(n));
+  check("1st through 8th choices score 13,8,5,3,2,1,1,1", JSON.stringify(got) === JSON.stringify(W8), `got ${got}`);
+  check("a 9th choice scores nothing, even with a 9th weight", !eight.get("a").has("j"), `got ${eight.get("a").get("j")}`);
+  const team = ["a", ...NINE];
+  check("happiness with all eight choices on the team is 34", TB.memberHappiness("a", team, eight) === 34,
+    `got ${TB.memberHappiness("a", team, eight)}`);
+  check("happiness with all eight unwanted on the team is -34", TB.memberHappiness("z", [...team, "z"], eight) === -34,
+    `got ${TB.memberHappiness("z", [...team, "z"], eight)}`);
+  const six = TB.preferenceMap(TB.parseCsv("a," + NINE.join(",")), WEIGHTS);
+  check("with only six weights, only six choices count", six.get("a").size === 6, `got ${six.get("a").size}`);
+  const real = TB.preferenceMap(TB.parseCsv(sample), W8);
+  const sums = [...real].map(([n, m]) => [n, [...m.values()].reduce((x, y) => x + y, 0)]);
+  check("every prefs.txt row uses all six of its choices (32 points; ee lists gg twice, so 31)",
+    sums.every(([n, s]) => s === (n === "ee" ? 31 : 32)), `got ${JSON.stringify(sums)}`);
+}
+
+// --- negative preferences: "-Name" costs the weight of its position ---
+{
+  const neg = TB.preferenceMap(TB.parseCsv("aa,-bb,cc,dd,ee,ff,-gg\naa2,- bb"), WEIGHTS);
+  check("negative in 1st place costs the 1st-place weight", neg.get("aa").get("bb") === -13, `got ${neg.get("aa").get("bb")}`);
+  check("negative in 6th place costs the 6th-place weight", neg.get("aa").get("gg") === -1, `got ${neg.get("aa").get("gg")}`);
+  check("space after the dash is ignored", neg.get("aa2").get("bb") === -13, `got ${[...neg.get("aa2").keys()]}`);
+  const team = ["aa", "bb", "cc"];
+  check("happiness = chosen minus unwanted", TB.memberHappiness("aa", team, neg) === 8 - 13,
+    `got ${TB.memberHappiness("aa", team, neg)}`);
+  const d = TB.dislikedTeammates("aa", team, neg);
+  check("unwanted teammate is reported", JSON.stringify(d) === JSON.stringify([{ name: "bb", points: -13 }]),
+    `got ${JSON.stringify(d)}`);
+  // the search should keep a 1st-place "-" apart when it can
+  const apart = TB.preferenceMap(TB.parseCsv("aa,-bb,cc\nbb,aa,cc\ncc,aa,bb\ndd,aa,bb"), WEIGHTS);
+  const out = TB.bestTeams(["aa", "bb", "cc", "dd"], apart, 2, 2000, TB.makeRng(3), 0, 10, null);
+  check("search separates someone from a 1st-place negative",
+    !out.teams.some((t) => t.includes("aa") && t.includes("bb")), `got ${JSON.stringify(out.teams)}`);
+}
 
 // --- the class, against brute-forced optima ---
 const prefs = TB.preferenceMap(TB.parseCsv(sample), WEIGHTS);

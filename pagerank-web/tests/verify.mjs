@@ -11,8 +11,8 @@ const html = fs.readFileSync(path.join(root, 'pagerank.html'), 'utf8');
 const m = html.match(/ALGORITHM START ={2,}\n([\s\S]*?)\n\/\/ ={2,} ALGORITHM END/);
 if (!m) { console.error('Could not find the ALGORITHM block in pagerank.html'); process.exit(1); }
 const algo = await import('data:text/javascript,' +
-  encodeURIComponent(m[1] + '\nexport { run, parseCSV, parseChoice, buildModel, teamHappiness };'));
-const { run, parseChoice, buildModel } = algo;
+  encodeURIComponent(m[1] + '\nexport { run, parseCSV, parseChoice, buildModel, teamHappiness, preferenceTeams };'));
+const { run, parseChoice, buildModel, preferenceTeams, teamHappiness } = algo;
 
 const W = [13, 8, 5, 3, 2, 1];
 let pass = 0, fail = 0;
@@ -41,23 +41,51 @@ const teamOf = (r, name) => r.teams.find(t => t.includes(name));
 // Negative-preference support must not change any all-positive result.
 group('Regression: the CS374 class still matches pagerank-teams.py');
 {
-  const csv = fs.readFileSync(path.join(root, '26F-CS374-prefs.txt'), 'utf8');
+  const csv = fs.readFileSync(path.join(root, '..', 'prefs.txt'), 'utf8');
   const r = run(csv, W, 3);
   check('ranking (4dp)', r.ranklist.map(([n, s]) => s.toFixed(4) + ' ' + n), [
-    '0.1641 Musa_Blake', '0.1405 Trent_Festich', '0.1157 John_David_Schultz',
-    '0.1037 Mya_Hargrave', '0.0967 Isaac_England', '0.0749 Sarah_Rawls',
-    '0.0598 Akram_Idriss', '0.0545 Ben_Wilson', '0.0520 Zander_Ragsdale',
-    '0.0500 Khiryn_Tillman_Johnson', '0.0479 Matthew_Aghassi', '0.0402 Roberto_Sugira']);
+    '0.1542 bb', '0.1341 dd', '0.1110 ee',
+    '0.1095 ii', '0.0865 cc', '0.0848 gg',
+    '0.0710 hh', '0.0581 ff', '0.0554 ll',
+    '0.0491 kk', '0.0461 aa', '0.0402 jj']);
   check('teams', r.teams.map(t => t.join(', ')), [
-    'Musa_Blake, Mya_Hargrave, Zander_Ragsdale',
-    'Trent_Festich, John_David_Schultz, Sarah_Rawls',
-    'Isaac_England, Matthew_Aghassi, Akram_Idriss',
-    'Ben_Wilson, Roberto_Sugira, Khiryn_Tillman_Johnson']);
-  ok('top score within 1e-9 of networkx', Math.abs(r.ranklist[0][1] - 0.1640969018) < 1e-9);
+    'bb, ee, gg',
+    'dd, ii, hh',
+    'cc, aa, ff',
+    'll, jj, kk']);
+  ok('top score within 1e-9 of networkx', Math.abs(r.ranklist[0][1] - 0.15422545943694158) < 1e-9);
   check('duplicate edge collapsed (71 not 72)', r.edgeCount, 71);
+  ok('ee keeps gg at 1st place (13), not 6th (1)', r.value.get('ee').get('gg') === 13);
   check('no negatives detected', r.negativeCount, 0);
   check('no conflicts', r.conflicts.length, 0);
   ok('scores sum to 1', Math.abs(r.ranklist.reduce((a, b) => a + b[1], 0) - 1) < 1e-12);
+}
+
+// ----------------------------------------------------------- eight choices
+group('Up to eight preferences count; a 9th does not');
+{
+  const W8 = [13, 8, 5, 3, 2, 1, 1, 1];
+  const NINE = ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+  const m = buildModel([['A', ...NINE]], [...W8, 9]);
+  check('1st through 8th choices score 13,8,5,3,2,1,1,1', NINE.slice(0, 8).map(n => m.value.get('A').get(n)), W8);
+  check('all eight become PageRank edges with those weights', [...m.adj.get('A')],
+    NINE.slice(0, 8).map((n, i) => [n, W8[i]]));
+  ok('a 9th choice never becomes an edge, even with a 9th weight', !m.adj.get('A').has('J'));
+  ok('a 9th choice scores nothing', !m.value.get('A').has('J'));
+  const r = run('A,' + NINE.join(',') + '\nZ,' + NINE.map(n => '-' + n).join(','), W8, 11);
+  ok('nine choices with eight weights is not an error', r.teams !== undefined);
+  check('happiness with all eight choices on the team is 34',
+    teamHappiness(['A', ...NINE], r.value).members[0].score, 34);
+  check('happiness with all eight unwanted on the team is -34',
+    teamHappiness(['Z', ...NINE], r.value).members[0].score, -34);
+  throws('eight choices with only six weights is an error', () => buildModel([['A', ...NINE.slice(0, 8)]], W),
+    /8 choices but only 6 weights/);
+  const real = run(fs.readFileSync(path.join(root, '..', 'prefs.txt'), 'utf8'), W8, 3);
+  const sums = [...real.value].map(([n, v]) => [n, [...v.values()].reduce((x, y) => x + y, 0)]);
+  ok('every prefs.txt row uses all six of its choices (32 points; ee lists gg twice, so 31)',
+    sums.every(([n, s]) => s === (n === 'ee' ? 31 : 32)));
+  check('eight default weights give the same teams on prefs.txt', real.teams.map(t => t.join(', ')),
+    ['bb, ee, gg', 'dd, ii, hh', 'cc, aa, ff', 'll, jj, kk']);
 }
 
 // ------------------------------------------------------------------- parsing
@@ -173,13 +201,21 @@ group('Happiness bookkeeping');
   check('an unlisted teammate is worth 0', unlisted.value.get('A').get('Z') ?? 0, 0);
 }
 
-group('Sign conflicts resolve to the last mention');
+group('Duplicates: only the first mention counts');
 {
   const model = buildModel([['A', 'B', 'C', 'D', '-B']], W);
-  check('"B ... -B" ends negative', model.value.get('A').get('B'), -3);
+  check('"B ... -B" stays positive at 1st place', model.value.get('A').get('B'), 13);
+  ok('and keeps its 1st-place edge', model.adj.get('A').get('B') === 13);
   const model2 = buildModel([['A', '-B', 'C', 'D', 'B']], W);
-  check('"-B ... B" ends positive', model2.value.get('A').get('B'), 3);
-  ok('but the graph keeps the positive edge it saw', model.adj.get('A').get('B') === 13);
+  check('"-B ... B" stays negative at 1st place', model2.value.get('A').get('B'), -13);
+  ok('and gets no edge from the later positive', !model2.adj.get('A').has('B'));
+  check('later choices keep their own positions', model2.value.get('A').get('D'), 5);
+  const model3 = buildModel([['A', 'B', 'C', 'B']], W);
+  check('"B ... B" keeps the 1st-place weight', [model3.value.get('A').get('B'), model3.adj.get('A').get('B')], [13, 13]);
+  // team fill must not seat someone whose first mention was negative
+  const fill = buildModel([['A', '-B', 'B', 'C']], W);
+  const { teams } = preferenceTeams(fill.prefs, [['A', 1]], 2);
+  check('A fills with C, skipping both B entries', teams, [['A', 'C']]);
 }
 
 group('Self-reference');

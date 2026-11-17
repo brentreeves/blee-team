@@ -17,7 +17,7 @@ walking down that ranking. Everything runs locally in the browser — no server,
 The page replaces this shell pipeline:
 
 ```bash
-python3 pagerank-teams.py -s 3 -w "[13,8,5,3,2,1]" -t "CS374 F26" < 26F-CS374-prefs.txt
+python3 pagerank-teams.py -s 3 -w "[13,8,5,3,2,1,1,1]" -t "CS374 F26" < 26F-CS374-prefs.txt
 ```
 
 with a form: paste the CSV, set size/weights/title, press a button, read the same three reports.
@@ -27,7 +27,7 @@ with a form: paste the CSV, set size/weights/title, press a button, read the sam
 One row per person, no header:
 
 ```csv
-name,first_choice,second_choice,third_choice,fourth_choice,fifth_choice,sixth_choice
+name,first_choice,second_choice,…,eighth_choice   (up to 8 choices; MAX_CHOICES)
 ```
 
 Parsing rules, matching Python's `csv.reader` closely enough for this data:
@@ -41,8 +41,7 @@ Parsing rules, matching Python's `csv.reader` closely enough for this data:
 - **A choice may be prefixed with `-`** (`-Dana`) meaning "do not put me on a team with this person."
   Whitespace after the dash is tolerated (`- Dana`). A bare `-` is an error.
 
-[26F-CS374-prefs.txt](26F-CS374-prefs.txt) is the reference input and must be embedded in the page as a
-"Load sample class" button.
+[../prefs.txt](../prefs.txt) (the CS374 class, anonymized) is the reference input for `tests/verify.mjs`.
 
 ## Controls
 
@@ -51,14 +50,14 @@ Each CLI flag becomes a form field, with the same defaults:
 | CLI | Control | Default |
 | --- | --- | --- |
 | `-s/--size` | Team size, integer ≥ 2 | `3` |
-| `-w/--weights` | Weights, comma-separated | `13,8,5,3,2,1` (reverse Fibonacci) |
+| `-w/--weights` | Weights, comma-separated | `13,8,5,3,2,1,1,1` (reverse Fibonacci) |
 | `-t/--title` | Title, free text | `Preferences` |
 | stdin | CSV textarea | empty, with sample-load button |
 
-The weights field accepts a bare list (`13,8,5,3,2,1`) and also tolerates surrounding brackets, since the
-Python default is the string `"[13,8,5,3,2,1]"`. Reject non-numeric entries with an inline error rather than
+The weights field accepts a bare list (`13,8,5,3,2,1,1,1`) and also tolerates surrounding brackets, since the
+Python default is the string `"[13,8,5,3,2,1,1,1]"`. Reject non-numeric entries with an inline error rather than
 silently substituting defaults. Offer the two commented-out alternates from the script as one-click presets:
-linear `6,5,4,3,2,1` and reverse Fibonacci from 21 `21,13,8,5,3,2`.
+linear `8,7,6,5,4,3,2,1` and reverse Fibonacci from 21 `21,13,8,5,3,2,1,1`.
 
 ## Negative preferences
 
@@ -91,8 +90,8 @@ if A never listed X. Then:
 - `memberHappiness(A, team)` = Σ `value(A → X)` over teammates X ≠ A
 - `teamHappiness(team)` = Σ `memberHappiness` over its members
 
-A name mentioned twice by the same person keeps its **last** mention, matching the last-duplicate-wins edge
-rule — so `B, C, D, -B` ends negative. Self-references score nothing. Positions beyond the end of the
+A name mentioned twice by the same person counts only at its **first** mention, positive or negative, so
+`B, C, D, -B` stays +13 and `-B, C, D, B` stays −13. Self-references score nothing. Positions beyond the end of the
 weights list are worth 0.
 
 ## Algorithm
@@ -102,19 +101,20 @@ the page must agree with the Python script digit for digit.
 
 ### 1. Weighted edges
 
-For each row, emit a directed edge from `row[0]` to each of **at most the first six** choices (`row[1:7]`),
+For each row, emit a directed edge from `row[0]` to each of **at most the first eight** choices (`row[1:9]`),
 weighted by position: choice *i* gets `weights[i]`.
 
 - Negative (`-`) choices are skipped entirely — no edge, at any position.
-- Only the first six choices become edges, even if a row has more.
-- If a row has fewer than six choices, only that many edges are emitted.
+- Only the first eight choices become edges, even if a row has more.
+- If a row has fewer than eight choices, only that many edges are emitted.
 - If `weights` is shorter than the number of choices present in a row, that is an error — Python raises
   `IndexError` here. Report it in the UI instead of crashing.
-- **Duplicate edges collapse, last one wins.** `add_weighted_edges_from` overwrites, so a row that names the
-  same person twice keeps only the *later*, lower weight. The sample data relies on this: `Mya_Hargrave`
-  lists `Zander_Ragsdale` first (13) and again sixth (1), and the surviving edge weight is **1**. The
-  resulting graph has 12 nodes and **71** edges, not 72. Implement the edge store as a map keyed by
-  `(source, target)` so this falls out naturally.
+- **Duplicates: the first mention wins.** A name listed twice in a row counts only where it first
+  appears. Later mentions make no edge, no score, and no team-fill candidate, but they still use up their
+  position, so later choices keep their own weights. In the sample, `ee` lists `gg` first (13) and again
+  sixth, and the edge weight is **13**. The resulting graph has 12 nodes and **71** edges, not 72. If the first
+  mention is negative, there is no edge at all, even if a positive mention comes later.
+  `pagerank-teams.py` applies the same rule in `tuples()`.
 - Self-loops (a person listing themselves) are kept, not dropped.
 - Node insertion order is the order nodes are first seen while scanning edges — source, then target, edge by
   edge. Preserve it; it decides tie-breaks later.
@@ -146,16 +146,16 @@ Python's `sorted(..., reverse=True)`.
 
 Greedy, seeded by rank — port `preference_teams` faithfully, including its quirks:
 
-1. Build `preferences[name] = row[1:]` — here **all** remaining cells count, not just the first six. This
-   differs deliberately from the six-choice cap used for edges.
+1. Build `preferences[name] = row[1:]` — here **all** remaining cells count, not just the first eight. This
+   differs deliberately from the eight-choice cap used for edges.
 2. Walk the PageRank ranking from highest to lowest. Skip anyone already assigned or with no row of their own.
 3. Seed a team with that person, then walk their preference list in order, **skipping any `-` entry**, and
    adding each unassigned name until the team reaches `size`.
 4. **If the team cannot be filled, roll the whole thing back** — including the seed. Those people return to
    the unassigned pool. The seed is not retried as a seed (the outer loop has moved past them), but they
    remain eligible to be picked up as someone else's choice further down the ranking.
-5. Duplicate names within one preference list are harmless: the second occurrence is already assigned and is
-   skipped.
+5. Duplicate names are removed before the fill, keeping the first mention. So `-B, …, B` never seats B
+   from this list.
 
 Anyone left unassigned when the walk ends is simply not on a team. The Python script silently drops them
 (its own `# Todo: handle case where person gets none of their prefs`). **The web app must not drop them
@@ -185,8 +185,8 @@ them; the assignment logic itself stays identical to the Python.
 
 ## Notes for future Claude sessions
 
-- Do not "fix" the quirks documented above (six-choice edge cap vs. full-list team fill, last-duplicate-wins
-  edge weights, whole-team rollback). They are the behavior being reproduced, and changing any of them
+- Do not "fix" the quirks documented above (eight-choice edge cap vs. full-list team fill, first-mention-wins
+  duplicates, whole-team rollback). They are the behavior being reproduced, and changing any of them
   changes the sample output.
 - Keep the ranking/team logic in one clearly marked block in the script (`ALGORITHM START` / `ALGORITHM END`)
   so it can be extracted and tested by Node, as the sibling project does.

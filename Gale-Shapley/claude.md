@@ -8,7 +8,7 @@ total happiness) and `../pagerank-web` (PageRank + greedy). All three use the sa
 ## Model (decided; don't silently change)
 
 - Roster = people with a row, in row order. Names with no row are reported in `ignored`, not seated.
-- `value(a→b)` = +w[i] / −w[i] for a's i-th choice (last mention wins). Past the weights list it is 0.
+- `value(a→b)` = +w[i] / −w[i] for a's i-th choice (first mention wins; later mentions are ignored). Past the weights list it is 0.
 - T = max(1, floor(n / size)) teams. Capacities differ by at most one; the first teams get the extras.
 - Captains: by default the top T by points received (`popularity`), ties broken by row order. A manual
   list must name exactly T people from the roster.
@@ -25,7 +25,7 @@ total happiness) and `../pagerank-web` (PageRank + greedy). All three use the sa
   keep that block free of DOM code.
 - After changing the algorithm, run `node tests/verify.mjs`. It brute-forces stable matchings to
   check the member-optimal and member-pessimal properties.
-- The test reads the real class file from `../26F-CS374-prefs.txt`. The page embeds only an
-  anonymized copy (same shape, fake names), like pagerank-web does.
+- The test reads the class file `../prefs.txt` (anonymized CS374). The page embeds its own
+  anonymized copy (same shape, different fake names).
 - Members are matched to captains only. Making members care about each other (stable roommates,
   coalition stability) would be a new algorithm, not a bug fix.

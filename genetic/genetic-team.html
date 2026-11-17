@@ -125,10 +125,13 @@
   .team .row { display: flex; justify-content: space-between; gap: 10px; padding: 1px 0; }
   .team .row .pts { color: var(--muted); font-variant-numeric: tabular-nums; }
   .team .row.zero .pts { color: var(--bad); }
+  .team .row.neg .pts { color: var(--bad); font-weight: 600; }
+  .team .row .warn { color: var(--bad); cursor: help; }
   .summary { margin: 0; padding: 0; list-style: none; }
   .summary li { padding: 2px 0; }
   .held { color: var(--good); }
   .missed { color: var(--bad); font-weight: 600; }
+  .panel.dropping { outline: 2px dashed var(--accent); outline-offset: 3px; }
   pre.roster {
     margin: 0; padding: 11px 12px; background: var(--bg);
     border: 1px solid var(--line); border-radius: 8px;
@@ -173,7 +176,7 @@ SOFTWARE.">The Blee Team</h1>
 <section class="panel" id="preferences-panel">
   <h2>Preferences</h2>
   <label for="csv">
-    <span class="hint">name, 1st choice, 2nd choice, &hellip; up to 6 choices. Prefix a name with "-" to vote AGAINST them.</span>
+    <span class="hint">name, 1st choice, 2nd choice, &hellip; up to 8 choices. Prefix a name with "-" to vote AGAINST them. Paste, or drop a .csv file here.</span>
   </label>
   <textarea id="csv" spellcheck="false" placeholder="Ada_Lovelace,Grace_Hopper,Alan_Turing&#10;Grace_Hopper,Ada_Lovelace,Alan_Turing"></textarea>
 </section>
@@ -305,15 +308,19 @@ function parseCsv(text) {
 
 // in: preference rows, weight per choice position
 // out: Map name -> Map choice -> signed weight; duplicate choices keep their first weight
+// A choice written "-Name" means "NOT on my team": it is worth minus the weight of
+// its position, so -Nancy in 1st place costs 13 and -Nancy in 8th place costs 1.
+// Only the first MAX_CHOICES choices count, and only as many as there are weights.
+const MAX_CHOICES = 8;
 function preferenceMap(rows, weights) {
   const prefs = new Map();
   for (const row of rows) {
     const name = row[0];
     if (!prefs.has(name)) prefs.set(name, new Map());
     const choices = prefs.get(name);
-    row.slice(1, weights.length + 1).forEach((choice, index) => {
+    row.slice(1, Math.min(weights.length, MAX_CHOICES) + 1).forEach((choice, index) => {
       const negative = choice.startsWith("-");
-      const other = negative ? choice.slice(1) : choice;
+      const other = negative ? choice.slice(1).trim() : choice;
       if (other && other !== name && !choices.has(other)) {
         choices.set(other, negative ? -weights[index] : weights[index]);
       }
@@ -337,6 +344,15 @@ function memberHappiness(name, team, prefs) {
   let total = 0;
   for (const other of team) if (other !== name) total += choices.get(other) || 0;
   return total;
+}
+
+// in: one person, the team they are on
+// out: the teammates that person marked "-", with what each one costs
+function dislikedTeammates(name, team, prefs) {
+  const choices = prefs.get(name);
+  if (!choices) return [];
+  return team.filter((o) => o !== name && (choices.get(o) || 0) < 0)
+    .map((o) => ({ name: o, points: choices.get(o) }));
 }
 
 function teamHappiness(team, prefs) {
@@ -498,7 +514,7 @@ globalThis.TeamBuilder = {
   PENALTY_WEIGHT, makeRng, parseCsv, preferenceMap, unknownNames,
   memberHappiness, teamHappiness, totalHappiness, scan, penaltyFrom,
   fairnessPenalty, teamSpreadPenalty, constraintPenalty, arrangementKey,
-  keyBeats, randomTeams, optimize, bestTeams,
+  keyBeats, randomTeams, optimize, bestTeams, dislikedTeammates, MAX_CHOICES,
 };
 </script>
 <!-- ===== ALGORITHM END ===== -->
@@ -684,7 +700,11 @@ function renderTeams(teams, prefs) {
       .sort((a, b) => TB.memberHappiness(b, team, prefs) - TB.memberHappiness(a, team, prefs))
       .map((name) => {
         const points = TB.memberHappiness(name, team, prefs);
-        return `<div class="row${points === 0 ? " zero" : ""}"><span>${esc(name)}</span><span class="pts">${points}</span></div>`;
+        const disliked = TB.dislikedTeammates(name, team, prefs);
+        const warn = disliked.length
+          ? ` <span class="warn" title="does not want: ${esc(disliked.map((d) => d.name).join(", "))}">&#9888;</span>` : "";
+        const cls = points < 0 ? " neg" : points === 0 ? " zero" : "";
+        return `<div class="row${cls}"><span>${esc(name)}${warn}</span><span class="pts">${points}</span></div>`;
       }).join("");
     return `<div class="team"><div class="head"><span>Team ${index + 1}</span>` +
            `<span class="score">score ${TB.teamHappiness(team, prefs)}</span></div>${rows}</div>`;
@@ -704,6 +724,15 @@ function renderSummary(teams, prefs, settings) {
     `Total happiness: <strong>${s.total}</strong>.  Least happy member ${low}, happiest ${high}, spread ${spread}`,
     `Weakest team ${weak}, strongest ${strong}, gap ${strong - weak}`,
   ];
+  const pairings = [];
+  for (const team of teams) {
+    for (const name of team) {
+      for (const d of TB.dislikedTeammates(name, team, prefs)) pairings.push(`${esc(name)} with ${esc(d.name)} (${d.points})`);
+    }
+  }
+  if (pairings.length) {
+    lines.push(`<span class="missed">${pairings.length} unwanted pairing${pairings.length === 1 ? "" : "s"}</span>: ${pairings.join(", ")}`);
+  }
   if (settings.ratio > 0) {
     const held = TB.fairnessPenalty(teams, prefs, settings.ratio) === 0;
     lines.push(`Member cap of ${settings.ratio}× <span class="${held ? "held" : "missed"}">${held ? "holds" : "NOT met"}</span>`);
@@ -771,6 +800,40 @@ function render(result, prefs, settings, missing, elapsed) {
   });
 }
 
+// Drag a .csv / .txt file onto the panel holding the CSV box to load it.
+// Anywhere else on the page, a dropped file is ignored instead of the browser
+// navigating away to open it.
+(function enableCsvDrop() {
+  const box = document.getElementById("csv");
+  const zone = box.closest(".panel") || box;
+  const hasFiles = (e) => e.dataTransfer && [...e.dataTransfer.types].includes("Files");
+  let depth = 0;
+  window.addEventListener("dragover", (e) => { if (hasFiles(e)) e.preventDefault(); });
+  window.addEventListener("drop", (e) => { if (hasFiles(e)) e.preventDefault(); });
+  zone.addEventListener("dragenter", (e) => {
+    if (!hasFiles(e)) return;
+    depth++;
+    zone.classList.add("dropping");
+  });
+  zone.addEventListener("dragleave", () => {
+    if (--depth <= 0) { depth = 0; zone.classList.remove("dropping"); }
+  });
+  zone.addEventListener("dragover", (e) => {
+    if (hasFiles(e)) { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }
+  });
+  zone.addEventListener("drop", async (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    depth = 0;
+    zone.classList.remove("dropping");
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    box.value = (await file.text()).replace(/^\uFEFF/, "").trim();
+    box.dispatchEvent(new Event("input", { bubbles: true }));
+    box.focus();
+  });
+})();
 </script>
 </body>
 </html>

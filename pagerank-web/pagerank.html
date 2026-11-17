@@ -114,6 +114,7 @@
   .unassigned h3 { color: var(--err); }
   .note { font-size: .84rem; color: var(--muted); margin: .8rem 0 0; }
   .hidden { display: none; }
+  .panel.dropping { outline: 2px dashed var(--accent); outline-offset: 3px; }
   .stat { font-size: .84rem; color: var(--muted); margin: 0 0 .9rem; }
   .copied { color: var(--ok); font-size: .84rem; }
 </style>
@@ -142,22 +143,22 @@
     </div>
     <div class="field">
       <label for="weights">Weights</label>
-      <input type="text" id="weights" value="13,8,5,3,2,1">
+      <input type="text" id="weights" value="13,8,5,3,2,1,1,1">
       <div class="err" id="weights-err"></div>
       <div class="presets">
         <span>presets:</span>
-        <button class="chip" data-w="13,8,5,3,2,1">13,8,5,3,2,1</button>
-
-        <button class="chip" data-w="21,13,8,5,3,2">21,13,8,5,3,2</button>
-        <button class="chip" data-w="6,5,4,1,1,1">6,5,4,3,2,1</button>
+        <button class="chip" data-w="13,8,5,3,2,1,1,1">13,8,5,3,2,1,1,1</button>
+        <button class="chip" data-w="21,13,8,5,3,2,1,1">21,13,8,5,3,2,1,1</button>
+        <button class="chip" data-w="8,7,6,5,4,3,2,1">8,7,6,5,4,3,2,1</button>
       </div>
     </div>
   </div>
 
   <div class="row" style="margin-top:1.2rem; display:block;">
     <label for="csv" style="font-size:.82rem; font-weight:600; color:var(--muted); display:block; margin-bottom:.3rem;">
-      Preferences CSV &mdash; <code>name,1st,2nd,3rd,4th,5th,6th</code>
+      Preferences CSV &mdash; <code>name,1st,2nd,&hellip;,8th</code> (up to 8 choices)
       &nbsp;&middot;&nbsp; prefix a name with <code>-</code> to say you do <strong>not</strong> want them
+      &nbsp;&middot;&nbsp; paste, or drop a .csv file here
     </label>
     <textarea id="csv" spellcheck="false" placeholder="person1,choice1,choice2,choice3..."></textarea>
     <div class="err" id="csv-err"></div>
@@ -211,8 +212,8 @@
 <script>
 // ============================== ALGORITHM START ==============================
 // Port of pagerank-teams.py, plus negative preferences. See claude.md for the
-// pinned behaviors: six-choice edge cap vs. full-list team fill,
-// last-duplicate-wins edge weights, whole-team rollback, and nx.pagerank's
+// pinned behaviors: eight-choice edge cap vs. full-list team fill,
+// first-mention-wins duplicates, whole-team rollback, and nx.pagerank's
 // N*tol convergence test.
 //
 // NEGATIVE PREFERENCES: a choice may be prefixed with '-' ("-Dana"), meaning
@@ -264,8 +265,11 @@ function parseChoice(cell) {
 }
 
 // rows -> graph (positive choices only) + preference lists + signed point values.
-// A repeated (source, target) keeps the LAST weight but its FIRST position,
-// matching networkx add_weighted_edges_from over an adjacency dict.
+// DUPLICATES: a name listed more than once in a row counts only at its FIRST
+// mention, positive or negative. Later mentions are ignored everywhere: no
+// edge, no score, no team fill. They still occupy their position, so the
+// choices after them keep their original weights.
+const MAX_CHOICES = 8; // choices that become edges and scores
 function buildModel(rows, weights) {
   const adj = new Map();   // source -> Map(target -> weight), insertion ordered
   const nodes = [];        // first-seen order: source, then targets, row by row
@@ -277,7 +281,7 @@ function buildModel(rows, weights) {
   let negativeCount = 0;
 
   rows.forEach((row, r) => {
-    const capped = row.slice(1, 7);
+    const capped = row.slice(1, MAX_CHOICES + 1);
     if (capped.length > weights.length) {
       throw new Error('Row ' + (r + 1) + ' (' + row[0] + ') has ' + capped.length +
         ' choices but only ' + weights.length + ' weights were given.');
@@ -291,21 +295,27 @@ function buildModel(rows, weights) {
     });
 
     addNode(row[0]);
-    prefs.set(row[0], entries); // a repeated row for one person: last row wins
+    const firstSeen = new Set();
+    const first = [];         // [{name, negative}, position] for first mentions only
+    entries.forEach((c, i) => {
+      if (firstSeen.has(c.name)) return;
+      firstSeen.add(c.name);
+      first.push([c, i]);
+    });
+    prefs.set(row[0], first.map(([c]) => c)); // a repeated row for one person: last row wins
 
     const vmap = new Map();
-    entries.forEach((c, i) => {
+    first.forEach(([c, i]) => {
       addNode(c.name);          // roster includes people named only negatively
       if (c.negative) negativeCount++;
-      // Signed point value. Defined only where a weight exists; a name mentioned
-      // twice keeps its LAST mention, matching the edge rule.
-      if (i < weights.length && c.name !== row[0]) {
+      // Signed point value, defined only where a weight exists.
+      if (i < Math.min(weights.length, MAX_CHOICES) && c.name !== row[0]) {
         vmap.set(c.name, c.negative ? -weights[i] : weights[i]);
       }
-      // Graph edge: first six positions, positive choices only.
-      if (i < 6 && !c.negative) {
+      // Graph edge: first MAX_CHOICES positions, positive choices only.
+      if (i < MAX_CHOICES && !c.negative) {
         if (!adj.has(row[0])) adj.set(row[0], new Map());
-        adj.get(row[0]).set(c.name, weights[i]); // set() on an existing key keeps its position
+        adj.get(row[0]).set(c.name, weights[i]);
       }
     });
     value.set(row[0], vmap);
@@ -365,7 +375,7 @@ function ranked(nodes, scores) {
 }
 
 // Port of preference_teams(). Team fill walks the WHOLE preference list (row[1:]),
-// not just the first six, and skips '-' entries entirely — you are never seated
+// not just the first eight, and skips '-' entries entirely — you are never seated
 // with someone you marked negative *from your own list*. A team that cannot be
 // filled is rolled back entirely, seed included.
 function preferenceTeams(prefs, ranklist, teamSize) {
@@ -617,6 +627,40 @@ $('copy').addEventListener('click', async () => {
 
 // Expose for the Node acceptance test.
 if (typeof module !== 'undefined') module.exports = { run, parseCSV, parseWeights };
+// Drag a .csv / .txt file onto the panel holding the CSV box to load it.
+// Anywhere else on the page, a dropped file is ignored instead of the browser
+// navigating away to open it.
+(function enableCsvDrop() {
+  const box = document.getElementById("csv");
+  const zone = box.closest(".panel") || box;
+  const hasFiles = (e) => e.dataTransfer && [...e.dataTransfer.types].includes("Files");
+  let depth = 0;
+  window.addEventListener("dragover", (e) => { if (hasFiles(e)) e.preventDefault(); });
+  window.addEventListener("drop", (e) => { if (hasFiles(e)) e.preventDefault(); });
+  zone.addEventListener("dragenter", (e) => {
+    if (!hasFiles(e)) return;
+    depth++;
+    zone.classList.add("dropping");
+  });
+  zone.addEventListener("dragleave", () => {
+    if (--depth <= 0) { depth = 0; zone.classList.remove("dropping"); }
+  });
+  zone.addEventListener("dragover", (e) => {
+    if (hasFiles(e)) { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }
+  });
+  zone.addEventListener("drop", async (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    depth = 0;
+    zone.classList.remove("dropping");
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    box.value = (await file.text()).replace(/^\uFEFF/, "").trim();
+    box.dispatchEvent(new Event("input", { bubbles: true }));
+    box.focus();
+  });
+})();
 </script>
 </body>
 </html>

@@ -115,6 +115,7 @@
   .bad h3 { color: var(--err); }
   .note { font-size: .84rem; color: var(--muted); margin: .8rem 0 0; }
   .hidden { display: none; }
+  .panel.dropping { outline: 2px dashed var(--accent); outline-offset: 3px; }
   .stat { font-size: .84rem; color: var(--muted); margin: 0 0 .9rem; }
   .good { color: var(--ok); font-weight: 600; }
   .copied { color: var(--ok); font-size: .84rem; }
@@ -143,13 +144,13 @@
     </div>
     <div class="field">
       <label for="weights">Weights</label>
-      <input type="text" id="weights" value="13,8,5,3,2,1">
+      <input type="text" id="weights" value="13,8,5,3,2,1,1,1">
       <div class="err" id="weights-err"></div>
       <div class="presets">
         <span>presets:</span>
-        <button class="chip" data-w="13,8,5,3,2,1">13,8,5,3,2,1</button>
-        <button class="chip" data-w="21,13,8,5,3,2">21,13,8,5,3,2</button>
-        <button class="chip" data-w="6,5,4,3,2,1">6,5,4,3,2,1</button>
+        <button class="chip" data-w="13,8,5,3,2,1,1,1">13,8,5,3,2,1,1,1</button>
+        <button class="chip" data-w="21,13,8,5,3,2,1,1">21,13,8,5,3,2,1,1</button>
+        <button class="chip" data-w="8,7,6,5,4,3,2,1">8,7,6,5,4,3,2,1</button>
       </div>
     </div>
     <div class="field">
@@ -169,8 +170,9 @@
 
   <div class="row" style="margin-top:1.2rem; display:block;">
     <label for="csv" class="lbl" style="display:block; margin-bottom:.3rem;">
-      Preferences CSV &mdash; <code>name,1st,2nd,3rd,4th,5th,6th</code>
+      Preferences CSV &mdash; <code>name,1st,2nd,&hellip;,8th</code> (up to 8 choices)
       &nbsp;&middot;&nbsp; prefix a name with <code>-</code> to say you do <strong>not</strong> want them
+      &nbsp;&middot;&nbsp; paste, or drop a .csv file here
     </label>
     <textarea id="csv" spellcheck="false" placeholder="person1,choice1,choice2,choice3..."></textarea>
     <div class="err" id="csv-err"></div>
@@ -287,9 +289,11 @@ function parseChoice(cell) {
 
 // rows -> roster (people with a row, in row order) + signed point values.
 // value.get(a).get(b) = +w[i] if b is a's i-th choice, -w[i] if listed as -b.
-// A name mentioned twice keeps its LAST mention. Positions past the end of the
-// weights list are worth 0. Names with no row of their own are not on the
+// A name mentioned twice counts only at its FIRST mention, positive or
+// negative; later mentions are ignored. Only the first MAX_CHOICES positions
+// count; positions past that, or past the end of the weights list, are worth 0. Names with no row of their own are not on the
 // roster (nobody to seat) and are reported back as `ignored`.
+const MAX_CHOICES = 8;
 function buildModel(rows, weights) {
   const roster = [];
   const value = new Map();
@@ -306,8 +310,8 @@ function buildModel(rows, weights) {
       }
       if (c.negative) negativeCount++;
       mentioned.add(c.name);
-      if (c.name !== name) {
-        vmap.set(c.name, i < weights.length ? (c.negative ? -weights[i] : weights[i]) : 0);
+      if (c.name !== name && !vmap.has(c.name)) {
+        vmap.set(c.name, i < Math.min(weights.length, MAX_CHOICES) ? (c.negative ? -weights[i] : weights[i]) : 0);
       }
     });
     value.set(name, vmap); // a repeated row for one person: last row wins
@@ -732,6 +736,40 @@ $('copy').addEventListener('click', async () => {
   }
   $('copied').classList.remove('hidden');
 });
+// Drag a .csv / .txt file onto the panel holding the CSV box to load it.
+// Anywhere else on the page, a dropped file is ignored instead of the browser
+// navigating away to open it.
+(function enableCsvDrop() {
+  const box = document.getElementById("csv");
+  const zone = box.closest(".panel") || box;
+  const hasFiles = (e) => e.dataTransfer && [...e.dataTransfer.types].includes("Files");
+  let depth = 0;
+  window.addEventListener("dragover", (e) => { if (hasFiles(e)) e.preventDefault(); });
+  window.addEventListener("drop", (e) => { if (hasFiles(e)) e.preventDefault(); });
+  zone.addEventListener("dragenter", (e) => {
+    if (!hasFiles(e)) return;
+    depth++;
+    zone.classList.add("dropping");
+  });
+  zone.addEventListener("dragleave", () => {
+    if (--depth <= 0) { depth = 0; zone.classList.remove("dropping"); }
+  });
+  zone.addEventListener("dragover", (e) => {
+    if (hasFiles(e)) { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }
+  });
+  zone.addEventListener("drop", async (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    depth = 0;
+    zone.classList.remove("dropping");
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    box.value = (await file.text()).replace(/^\uFEFF/, "").trim();
+    box.dispatchEvent(new Event("input", { bubbles: true }));
+    box.focus();
+  });
+})();
 </script>
 </body>
 </html>

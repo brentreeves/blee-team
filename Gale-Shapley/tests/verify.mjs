@@ -88,14 +88,14 @@ function optimality(label, csv, size) {
 
 // ---------------------------------------------------------------- CS374 class
 group('CS374 class (12 people, teams of 3)');
-const cs374 = fs.readFileSync(path.join(root, '..', '26F-CS374-prefs.txt'), 'utf8');
+const cs374 = fs.readFileSync(path.join(root, '..', 'prefs.txt'), 'utf8');
 {
   const rm = run(cs374, { weights: W, size: 3, proposer: 'members' });
   const rc = run(cs374, { weights: W, size: 3, proposer: 'captains' });
   structural('members propose', rm, 12);
   structural('captains propose', rc, 12);
   check('captains are the four most-wanted', rm.captains,
-    ['Musa_Blake', 'Trent_Festich', 'John_David_Schultz', 'Mya_Hargrave']);
+    ['bb', 'dd', 'ii', 'ee']);
   console.log('     members propose:  ' + rm.teams.map(t => t.join(', ')).join(' | ') + '  (happiness ' + rm.totalHappiness + ')');
   console.log('     captains propose: ' + rc.teams.map(t => t.join(', ')).join(' | ') + '  (happiness ' + rc.totalHappiness + ')');
   optimality('CS374', cs374, 3);
@@ -124,6 +124,49 @@ group('Embedded samples');
   ok('a disliked captain is ranked last by the member who dislikes them',
     rn.members.every(x => rn.captains.every(c => (rn.value.get(x).get(c) || 0) >= 0 ||
       rn.memberPrefs.get(x).at(-1) === c)));
+}
+
+// ---------------------------------------------------------------- eight choices
+group('Up to eight preferences count; a 9th does not');
+{
+  const W8 = [13, 8, 5, 3, 2, 1, 1, 1];
+  const NINE = ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+  const csv = 'A,' + NINE.join(',') + '\n' + NINE.map(n => n + ',A').join('\n');
+  const r = run(csv, { weights: [...W8, 9], size: 10, proposer: 'members' });
+  check('1st through 8th choices score 13,8,5,3,2,1,1,1', NINE.slice(0, 8).map(n => r.value.get('A').get(n)), W8);
+  check('a 9th choice scores 0, even with a 9th weight', r.value.get('A').get('J') ?? 0, 0);
+  check('one team of ten', r.teams.map(t => t.length), [10]);
+  check('happiness with all eight choices on the team is 34',
+    r.happiness[0].members.find(x => x.name === 'A').score, 34);
+  const n = run(csv.replace('A,' + NINE.join(','), 'A,' + NINE.map(x => '-' + x).join(',')), { weights: W8, size: 10 });
+  check('happiness with all eight unwanted on the team is -34',
+    n.happiness[0].members.find(x => x.name === 'A').score, -34);
+  // the 8th choice still decides a ranking: X is a's 8th choice, Y is unlisted
+  const r8 = run('X,a\nY,a\na,p,q,r,s,t,u,v,X\nb,X', { weights: W8, size: 2, captains: ['X', 'Y'] });
+  check('an 8th-place captain outranks an unlisted one', r8.memberPrefs.get('a'), ['X', 'Y']);
+  const real = run(fs.readFileSync(path.join(root, '..', 'prefs.txt'), 'utf8'), { weights: W8, size: 3 });
+  const sums = [...real.value].map(([n, v]) => [n, [...v.values()].reduce((x, y) => x + y, 0)]);
+  ok('every prefs.txt row uses all six of its choices (32 points; ee lists gg twice, so 31)',
+    sums.every(([n, s]) => s === (n === 'ee' ? 31 : 32)));
+}
+
+// ---------------------------------------------------------------- negatives
+group('Negative preferences are weighted by position');
+{
+  // m dislikes X in 1st place (-13) and Y in 6th place (-1): X must rank below Y.
+  const csv = 'X,m\nY,m\nm,-X,a,b,c,d,-Y\na,X\nb,X\nc,X';
+  const r = run(csv, { weights: W, size: 3, proposer: 'members', captains: ['X', 'Y'] });
+  check('values are minus the position weight', [r.value.get('m').get('X'), r.value.get('m').get('Y')], [-13, -1]);
+  check('worse dislike ranks last', r.memberPrefs.get('m'), ['Y', 'X']);
+  check('m avoids the captain they most dislike', r.teams.find(t => t.includes('m'))[0], 'Y');
+  // a captain who marks a member '-' ranks them last
+  const r2 = run('X,-m,a\nY,a\nm,X\na,X', { weights: W, size: 2, proposer: 'captains', captains: ['X', 'Y'] });
+  check('captain ranks a disliked member last', r2.captainPrefs.get('X'), ['a', 'm']);
+  check('duplicates: only the first mention counts',
+    [run('X,m,-m\nY,m\nm,X\na,X', { weights: W, size: 2, captains: ['X', 'Y'] }).value.get('X').get('m'),
+     run('X,-m,m\nY,m\nm,X\na,X', { weights: W, size: 2, captains: ['X', 'Y'] }).value.get('X').get('m')], [13, -13]);
+  check('"- Name" with a space is the same as "-Name"',
+    run('X,- m\nY,m\nm,X\na,X', { weights: W, size: 2, captains: ['X', 'Y'] }).value.get('X').get('m'), -13);
 }
 
 // ---------------------------------------------------------------- textbook case
@@ -175,7 +218,7 @@ group('Random classes (seeded): optimality against brute force');
 
 // ---------------------------------------------------------------- errors & edges
 group('Errors and edge cases');
-throws('wrong number of captains', () => run(cs374, { weights: W, size: 3, captains: ['Musa_Blake'] }), /exactly 4/);
+throws('wrong number of captains', () => run(cs374, { weights: W, size: 3, captains: ['bb'] }), /exactly 4/);
 throws('unknown captain', () => run(cs374, { weights: W, size: 3, captains: ['Nobody', 'a', 'b', 'c'] }), /no row/);
 throws('empty CSV', () => run('\n\n', { weights: W, size: 3 }), /No usable rows/);
 throws('bare dash', () => run('a,-\nb,a', { weights: W, size: 2 }), /empty choice/);
