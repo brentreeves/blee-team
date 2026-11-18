@@ -135,6 +135,24 @@ check("incomplete preference data still produces a positive result",
     !out.teams.some((t) => t.includes("aa") && t.includes("bb")), `got ${JSON.stringify(out.teams)}`);
 }
 
+// --- the "Load sample with dislikes" button's data ---
+{
+  const grab = (id) => html.split(`<script id="${id}" type="text/plain">`)[1].split("</script>")[0].trim();
+  const plainRows = TB.parseCsv(grab("sample-data"));
+  const negRows = TB.parseCsv(grab("sample-neg-data"));
+  const negCount = negRows.flat().filter((c) => c.startsWith("-")).length;
+  check("dislikes sample has the same people as the plain sample",
+    JSON.stringify(negRows.map((r) => r[0])) === JSON.stringify(plainRows.map((r) => r[0])));
+  check("dislikes sample has exactly two '-' choices", negCount === 2, `got ${negCount}`);
+  const negPrefs = TB.preferenceMap(negRows, WEIGHTS);
+  check("aa -> cc and cc -> aa cost their 2nd-place weight",
+    negPrefs.get("aa").get("cc") === -8 && negPrefs.get("cc").get("aa") === -8);
+  const negRoster = [...negPrefs.keys()].sort();
+  const out = TB.bestTeams(negRoster, negPrefs, 3, 10000, TB.makeRng(1), 0, 50, null);
+  check("the search keeps aa and cc apart",
+    !out.teams.some((t) => t.includes("aa") && t.includes("cc")), `got ${JSON.stringify(out.teams)}`);
+}
+
 // --- the class, against brute-forced optima ---
 const prefs = TB.preferenceMap(TB.parseCsv(sample), WEIGHTS);
 const roster = [...prefs.keys()].sort();

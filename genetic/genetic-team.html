@@ -26,7 +26,7 @@ SOFTWARE.
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Blee Team</title>
+<title>The Blee Team - Genetic</title>
 <style>
   :root {
     color-scheme: light dark;
@@ -169,7 +169,7 @@ SOFTWARE.
 <body>
 
 <header>
-  <h1>The Blee Team</h1>
+  <h1>The Blee Team - Genetic</h1>
   <div>Copyright &copy; 2026 Brent Neal Reeves &middot; MIT License. Use at your own risk - bugs likely.</div>
   
   <p>Paste your preferences in below and select the 'Build Teams' button. </p>
@@ -188,6 +188,7 @@ SOFTWARE.
   <form class="panel" id="form">
     <div class="buttons" style="margin: 0 0 18px;">
       <button type="button" id="sample">Load sample data</button>
+      <button type="button" id="sample-neg">Load sample with dislikes</button>
       <button type="button" id="load-file">Load file&hellip;</button>
       <input type="file" id="file-input" accept=".csv,.txt,text/csv,text/plain" hidden>
       <button type="button" id="clear">Clear</button>
@@ -536,6 +537,21 @@ jj
 kk
 </script>
 
+<!-- Same class with two dislikes: aa marks "-cc" and cc marks "-aa". Without
+     them, aa, bb and cc want each other; with them, the search should split
+     aa from cc, or flag the pairing if it cannot. -->
+<script id="sample-neg-data" type="text/plain">
+aa,bb,-cc,dd,ee
+bb,aa,cc,ii,jj
+cc,bb,-aa,jj,kk
+dd,gg,jj,bb,cc
+ee,hh,kk,aa,dd
+ff,ii,ll,aa,ee
+ii
+jj
+kk
+</script>
+
 <!-- <script id="sample-data" type="text/plain">
 aa,bb,cc,dd,ee,ff,gg
 bb,aa,cc,ii,jj,kk,ll
@@ -577,6 +593,10 @@ function resetSettingsToDefaults() {
 $("sample").addEventListener("click", () => {
   $("csv").value = $("sample-data").textContent.trim();
   $("title").value = "26F CS374";
+});
+$("sample-neg").addEventListener("click", () => {
+  $("csv").value = $("sample-neg-data").textContent.trim();
+  $("title").value = "26F CS374 (with dislikes)";
 });
 $("clear").addEventListener("click", () => { $("csv").value = ""; $("csv").focus(); });
 $("reset-defaults").addEventListener("click", () => {
