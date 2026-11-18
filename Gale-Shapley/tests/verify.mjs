@@ -171,6 +171,26 @@ group('Negative preferences are weighted by position');
     run('X,- m\nY,m\nm,X\na,X', { weights: W, size: 2, captains: ['X', 'Y'] }).value.get('X').get('m'), -13);
 }
 
+// ---------------------------------------------------------------- proposer sample
+group('prefs-proposers.csv: who proposes changes the teams');
+{
+  const W8 = [13, 8, 5, 3, 2, 1, 1, 1];
+  const csv = fs.readFileSync(path.join(root, '..', 'prefs-proposers.csv'), 'utf8');
+  const rm = run(csv, { weights: W8, size: 3, proposer: 'members' });
+  const rc = run(csv, { weights: W8, size: 3, proposer: 'captains' });
+  structural('members propose', rm, 12);
+  structural('captains propose', rc, 12);
+  ok('the two settings give different teams', JSON.stringify(rm.teams) !== JSON.stringify(rc.teams));
+  check('members propose: every member gets their 1st-choice captain',
+    rm.members.map(x => rm.captainChoice.get(x)), rm.members.map(() => 1));
+  const capPts = r => r.teams.map(t => t.slice(1).reduce((s, x) => s + (r.value.get(t[0]).get(x) || 0), 0));
+  const [pm, pc] = [capPts(rm), capPts(rc)];
+  ok('captains propose: every captain does at least as well', pc.every((v, i) => v >= pm[i]));
+  check('captain points 5 vs 43', [pm.reduce((a, b) => a + b), pc.reduce((a, b) => a + b)], [5, 43]);
+  const { count } = optimality('prefs-proposers', csv, 3);
+  ok('it has more than one stable matching', count > 1);
+}
+
 // ---------------------------------------------------------------- textbook case
 group('Classic stable marriage (size 2) — the textbook instance');
 {

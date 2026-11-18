@@ -40,6 +40,16 @@ gave the member more points. Each captain ranks every member the same way. Then 
 The result is **stable**: no member and captain would both rather be together than with what they got.
 When members propose, every member gets the best captain they can have in any stable matching.
 When captains propose, every captain does best and every member does worst.
+
+**Same teams either way?** That is expected when the class has only one stable matching, and then both
+settings must end in it. All of `prefs.txt`, `prefs-negatives.csv` and `prefs-varied.csv` are like that,
+though the proposal logs differ. To see the setting matter, load `../prefs-proposers.csv`, which has
+four stable matchings:
+
+- Members propose: all 8 members get their 1st-choice captain, and captains get 5 points' worth of the
+  members they wanted.
+- Captains propose: captains get 43 points' worth, members get their 1st to 4th choice, and 7 of the 8
+  change teams.
 The page checks stability itself and says `NOT stable` in red if the check fails.
 
 ## What it does not do

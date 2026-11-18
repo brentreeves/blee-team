@@ -38,6 +38,7 @@ All use the same anonymized 12-person class (`aa` … `ll`):
 | `prefs.csv` | The plain class: six choices per person. Same content as `prefs.txt`, which the tests read |
 | `prefs-negatives.csv` | The same class with three `-` choices (aa, ii and kk each mark someone they don't want) |
 | `prefs-varied.csv` | Uneven lists: some people give six choices, some only one or two, some rows have trailing commas |
+| `prefs-proposers.csv` | For Gale-Shapley: a class where **Who proposes** changes the teams. Members propose: every member gets their 1st-choice captain. Captains propose: 7 of 8 members move, and captains get the members they wanted |
 
 ## genetic
 
