@@ -11,7 +11,7 @@ It uses the same CSV and the same weights, so you can compare the three outputs 
 
 Paste the preference CSV (one row per person: `name, 1st choice, 2nd choice, ...`).
 Prefix a choice with `-` when the person does not want that teammate.
-Or press **Load sample class**, then **Build teams**.
+Or press **Load sample**, then **Build teams**.
 
 | Field | Meaning |
 | --- | --- |

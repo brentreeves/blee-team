@@ -9,7 +9,7 @@ Paste the preference CSV (one row per person: `name, 1st choice, 2nd choice, ...
 Prefix a choice with `-` when the person does not want that teammate; the
 negative choice uses the same weight as its position, but subtracts from
 their happiness instead of adding to it when they are on the same team.
-Or press **Load sample class**, set the fields, and press **Build Teams**.
+Or press **Load sample**, set the fields, and press **Build Teams**.
 
 | Field | Meaning |
 | --- | --- |

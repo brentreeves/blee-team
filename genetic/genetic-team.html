@@ -30,30 +30,30 @@ SOFTWARE.
 <style>
   :root {
     color-scheme: light dark;
-    --bg: #f6f7f9;
+    --bg: #f7f7f5;
     --panel: #ffffff;
-    --ink: #16181d;
-    --muted: #666d7a;
-    --line: #dce0e6;
-    --accent: #2f5fd0;
+    --ink: #1b1b19;
+    --muted: #6b6a66;
+    --line: #dedcd6;
+    --accent: #2a5a7a;
     --accent-ink: #ffffff;
-    --good: #1a7f4b;
-    --bad: #b3261e;
-    --chip: #eef1f6;
-    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --err: #a32e28;
+    --err-bg: #fdf0ef;
+    --ok: #2f6b46;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #14161a;
-      --panel: #1c1f25;
-      --ink: #e7e9ee;
-      --muted: #9aa2b1;
-      --line: #2e333c;
-      --accent: #6f9bff;
-      --accent-ink: #0e1116;
-      --good: #57d193;
-      --bad: #ff8a80;
-      --chip: #262b33;
+      --bg: #16161a;
+      --panel: #1e1e23;
+      --ink: #eceae4;
+      --muted: #9b988f;
+      --line: #33333a;
+      --accent: #7fb3d6;
+      --accent-ink: #12161a;
+      --err: #f0837c;
+      --err-bg: #2e1d1c;
+      --ok: #7fc79c;
     }
   }
   * { box-sizing: border-box; }
@@ -126,8 +126,8 @@ SOFTWARE.
     padding: 9px 11px;
     margin-bottom: 12px;
     font-size: 13.5px;
-    border: 1px solid var(--bad);
-    color: var(--bad);
+    border: 1px solid var(--err);
+    color: var(--err);
   }
   .out { font-family: var(--mono); font-size: 13px; }
   .out h3 { font-family: system-ui, sans-serif; font-size: 13px; margin: 20px 0 8px; color: var(--muted);
@@ -147,13 +147,13 @@ SOFTWARE.
   .team .head .score { color: var(--muted); font-weight: 500; font-size: 12px; }
   .team .row { display: flex; justify-content: space-between; gap: 10px; padding: 1px 0; }
   .team .row .pts { color: var(--muted); font-variant-numeric: tabular-nums; }
-  .team .row.zero .pts { color: var(--bad); }
-  .team .row.neg .pts { color: var(--bad); font-weight: 600; }
-  .team .row .warn { color: var(--bad); cursor: help; }
+  .team .row.zero .pts { color: var(--err); }
+  .team .row.neg .pts { color: var(--err); font-weight: 600; }
+  .team .row .warn { color: var(--err); cursor: help; }
   .summary { margin: 0; padding: 0; list-style: none; }
   .summary li { padding: 2px 0; }
-  .held { color: var(--good); }
-  .missed { color: var(--bad); font-weight: 600; }
+  .held { color: var(--ok); }
+  .missed { color: var(--err); font-weight: 600; }
   .panel.dropping { outline: 2px dashed var(--accent); outline-offset: 3px; }
   pre.roster {
     margin: 0; padding: 11px 12px; background: var(--bg);
@@ -179,7 +179,9 @@ SOFTWARE.
 <section class="panel" id="preferences-panel">
   <h2>Preferences</h2>
   <label for="csv">
-    <span class="hint">name, 1st choice, 2nd choice, &hellip; up to 8 choices. Prefix a name with "-" to vote AGAINST them. Paste, or drop a .csv file here.</span>
+    <span class="hint">Preferences CSV &mdash; <code>name,1st,2nd,&hellip;,8th</code> (up to 8 choices)
+      &nbsp;&middot;&nbsp; prefix a name with <code>-</code> to say you do <strong>not</strong> want them
+      &nbsp;&middot;&nbsp; paste, or drop a .csv file here</span>
   </label>
   <textarea id="csv" spellcheck="false" placeholder="Ada_Lovelace,Grace_Hopper,Alan_Turing&#10;Grace_Hopper,Ada_Lovelace,Alan_Turing"></textarea>
 </section>
@@ -187,7 +189,7 @@ SOFTWARE.
 <main>
   <form class="panel" id="form">
     <div class="buttons" style="margin: 0 0 18px;">
-      <button type="button" id="sample">Load sample data</button>
+      <button type="button" id="sample">Load sample</button>
       <button type="button" id="sample-neg">Load sample with dislikes</button>
       <button type="button" id="load-file">Load file&hellip;</button>
       <input type="file" id="file-input" accept=".csv,.txt,text/csv,text/plain" hidden>
