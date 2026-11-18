@@ -116,10 +116,12 @@ group('Embedded samples');
 {
   const sample = html.match(/const SAMPLE = `([\s\S]*?)`/)[1];
   const neg = html.match(/const SAMPLE_NEG = `([\s\S]*?)`/)[1];
+  check('Load sample is the same data as prefs-proposers.csv', sample.trim(),
+    fs.readFileSync(path.join(root, '..', 'prefs-proposers.csv'), 'utf8').trim());
   const a = run(sample, { weights: W, size: 3, proposer: 'members' });
-  const b = run(cs374, { weights: W, size: 3, proposer: 'members' });
-  check('anonymized sample gives the same team shapes as CS374',
-    a.teams.map(t => t.map(n => a.roster.indexOf(n))), b.teams.map(t => t.map(n => b.roster.indexOf(n))));
+  const b = run(sample, { weights: W, size: 3, proposer: 'captains' });
+  ok('Load sample gives different teams for the two proposers',
+    JSON.stringify(a.teams) !== JSON.stringify(b.teams));
   const rn = run(neg, { weights: W, size: 3, proposer: 'members' });
   structural('sample with dislikes', rn, 12);
   check('negatives counted', rn.negativeCount, 3);

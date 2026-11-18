@@ -229,12 +229,6 @@ SOFTWARE.
 
 <div id="results" class="hidden">
   <div class="panel">
-    <h2 id="cap-heading">Captains</h2>
-    <p class="stat" id="cap-stat"></p>
-    <pre id="popularity"></pre>
-  </div>
-
-  <div class="panel">
     <h2>Gale-Shapley teams</h2>
     <p class="stat" id="team-stat"></p>
     <div class="teams" id="teams"></div>
@@ -268,6 +262,12 @@ SOFTWARE.
       <button id="copy">Copy as text</button>
       <span class="copied hidden" id="copied">Copied.</span>
     </div>
+  </div>
+
+  <div class="panel">
+    <h2 id="cap-heading">Captains</h2>
+    <p class="stat" id="cap-stat"></p>
+    <pre id="popularity"></pre>
   </div>
 </div>
 
@@ -582,19 +582,21 @@ function run(csvText, opts) {
 }
 // =============================== ALGORITHM END ===============================
 
-// The CS374 class shape with the names replaced.
-const SAMPLE = `Ava,Kit,Ben,Dee,Ivy,Jay,Fay
-Ben,Eli,Gus,Lou,Dee,Hal,Cal
-Cal,Ivy,Dee,Ava,Fay,Ben,Hal
-Dee,Ivy,Ben,Hal,Eli,Lou,Cal
-Eli,Gus,Ben,Cal,Dee,Hal,Gus
-Fay,Dee,Kit,Hal,Ben,Ava,Ivy
-Gus,Eli,Ben,Dee,Lou,Hal,Cal
-Hal,Cal,Ben,Fay,Ivy,Eli,Jay
-Ivy,Dee,Cal,Ben,Hal,Fay,Jay
-Jay,Fay,Lou,Kit,Hal,Ava,Cal
-Kit,Ava,Ben,Dee,Fay,Ivy,Jay
-Lou,Jay,Ben,Ivy,Fay,Kit,Eli`;
+// Same data as ../prefs-proposers.csv: a class with four stable matchings, so
+// "Who proposes" changes the teams. Members propose: every member gets their
+// 1st-choice captain. Captains propose: 7 of 8 members move.
+const SAMPLE = `aa,dd,hh,kk,bb,cc,ff
+bb,ll,jj,gg,kk,dd,ff
+cc,ee,hh,jj,ii,gg,dd
+dd,ll,ee,kk,hh,ii,ff
+ee,bb,ll,dd,ff,gg,ii
+ff,dd,hh,cc,gg,ii,jj
+gg,hh,kk,aa,bb,cc,ll
+hh,dd,aa,jj,bb,kk,ee
+ii,aa,gg,ff,jj,bb,hh
+jj,hh,ff,aa,ll,gg,kk
+kk,jj,ff,hh,bb,ii,dd
+ll,dd,gg,cc,jj,bb,ee`;
 
 // Same class with three dislikes in last place. A disliked captain drops to the
 // bottom of that member's captain list; dislikes between two members are only
