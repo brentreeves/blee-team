@@ -7,7 +7,7 @@ name1,choice1,choice2,choice3,choice4,choice5,choice6,choice7,choice8
 name2,choice1,choice2,choice3,choice4,choice5,choice6,choice7,choice8
 ...
 ```
-Up to 8 choices count in all three pages. Fewer is fine. Choices past the 8th are ignored.
+Up to 8 choices count and fewer is fine. Choices past the 8th are ignored.
 
 A `#` starts a comment: everything after it on that line is ignored.  
 A whole line can be a comment, and a row can end with one. 
@@ -45,15 +45,17 @@ Here are some csv files to use as examples - students seem to be named 'aa' ... 
 | `prefs-varied.csv` | Uneven lists: some people give six choices, some only one or two, some rows have trailing commas |
 | `prefs-proposers.csv` | For Gale-Shapley: a class where **Who proposes** changes the teams. Members propose: every member gets their 1st-choice captain. Captains propose: captains get the members they want. |
 
-## genetic
+## Our Three Algorithms
+
+### genetic
 
 Switch 2 random team members and see if the happiness increases.  Repeat a zillion times to achieve a... local maximum!
 
-## Gayle-Shapley
+### Gayle-Shapley
 
 The most-requested folks get to be team-captains and choose their team-members, one at a time.
 
-## pagerank-web
+### pagerank-web
 
 Pretend that the preference list is a web of html pages.
 
