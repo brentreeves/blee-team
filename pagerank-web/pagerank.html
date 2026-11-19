@@ -140,6 +140,15 @@ SOFTWARE.
   .panel.dropping { outline: 2px dashed var(--accent); outline-offset: 3px; }
   .stat { font-size: .84rem; color: var(--muted); margin: 0 0 .9rem; }
   .copied { color: var(--ok); font-size: .84rem; }
+  .rosterhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: .6rem; }
+  .rosterhead h2 { margin: 0; }
+  .rosterhead button { padding: .2rem .6rem; font-size: .8rem; }
+  pre.roster {
+    padding: .7rem .8rem; background: var(--bg);
+    border: 1px solid var(--line); border-radius: 8px;
+    white-space: pre-wrap; word-break: break-word; font-size: .85rem;
+    margin-bottom: 1.1rem;
+  }
 </style>
 </head>
 <body>
@@ -157,7 +166,7 @@ SOFTWARE.
   <div class="controls">
     <div class="field">
       <label for="title">Title</label>
-      <input type="text" id="title" value="Preferences">
+      <input type="text" id="title" value="Genius Teams">
     </div>
     <div class="field">
       <label for="size">Team size</label>
@@ -198,7 +207,11 @@ SOFTWARE.
 
 <div id="results" class="hidden">
   <div class="panel">
-    <h2>Pagerank teams</h2>
+    <div class="rosterhead">
+      <h2>Suggested Teams</h2>
+      <button type="button" id="copy-roster">Copy</button>
+    </div>
+    <pre class="roster" id="roster"></pre>
     <p class="stat" id="team-stat"></p>
     <div class="teams" id="teams"></div>
     <div id="unassigned-wrap" class="hidden" style="margin-top:.75rem;">
@@ -252,10 +265,11 @@ SOFTWARE.
 // in a separate scoring map that feeds the happiness report instead.
 
 // csv.reader-equivalent for this data: comma separated, double-quoted fields honored.
+// COMMENTS: an unquoted "#" starts a comment that runs to the end of the line, so a
+// whole line can be a comment and a row can end with one. A "#" inside quotes is text.
 function parseCSV(text) {
   const rows = [];
   for (const rawLine of text.split(/\r\n|\n|\r/)) {
-    if (rawLine.trim().startsWith('#')) continue;            // comment line
     const cells = [];
     let cur = '', inQ = false, i = 0;
     while (i < rawLine.length) {
@@ -268,6 +282,8 @@ function parseCSV(text) {
         cur += c; i++;
       } else if (c === '"') {
         inQ = true; i++;
+      } else if (c === '#') {
+        break;                                                // comment to end of line
       } else if (c === ',') {
         cells.push(cur); cur = ''; i++;
       } else {
@@ -537,7 +553,7 @@ function build() {
   try { r = run($('csv').value, weights, size); }
   catch (e) { $('csv-err').textContent = e.message; $('results').classList.add('hidden'); return; }
 
-  const title = $('title').value.trim() || 'Preferences';
+  const title = $('title').value.trim() || 'Genius Teams';
   const weightLabel = '(weights [' + weights.join(', ') + '])';
 
   $('rank-heading').textContent = title + ' Pagerank';
@@ -632,6 +648,7 @@ function build() {
       r.conflicts.map(c => 'Team ' + c.team + ': ' + c.who + ' with ' + c.other +
         ' (' + fmtSigned(c.value) + ')').join('\n') : '') + '\n';
 
+  showRoster(r.teams, $('title').value.trim(), r.unassigned);
   $('results').classList.remove('hidden');
 }
 
@@ -649,6 +666,35 @@ $('copy').addEventListener('click', async () => {
     document.execCommand('copy'); ta.remove();
   }
   $('copied').classList.remove('hidden');
+});
+
+// The plain-text roster, same format as the genetic page: the Title the user
+// typed (if any) on the first line, then one line per team, names sorted.
+// Anyone left off a team is listed last so they are never lost in a paste.
+function rosterText(teams, title, unassigned) {
+  const lines = teams.map((t, i) => 'Team ' + (i + 1) + ': ' + [...t].sort().join(', '));
+  if (unassigned && unassigned.length) lines.push('Unassigned: ' + [...unassigned].sort().join(', '));
+  return (title ? [title, ...lines] : lines).join('\n');
+}
+let rosterLast = '';
+function showRoster(teams, title, unassigned) {
+  rosterLast = rosterText(teams, title, unassigned);
+  $('roster').textContent = rosterLast;
+}
+$('copy-roster').addEventListener('click', async (event) => {
+  const btn = event.currentTarget;
+  try {
+    await navigator.clipboard.writeText(rosterLast);
+    btn.textContent = 'Copied';
+  } catch (e) {
+    const range = document.createRange();
+    range.selectNodeContents($('roster'));
+    const selection = getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    btn.textContent = 'Selected';
+  }
+  setTimeout(() => { btn.textContent = 'Copy'; }, 1400);
 });
 
 // Expose for the Node acceptance test.

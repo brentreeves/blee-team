@@ -1,5 +1,6 @@
 # The Blee Team 
 
+Let's form teams.  
 Three ways to make teams from a list of preferences that looks like so:
 
 name1,choice1,choice2,choice3,choice4,choice5,choice6,choice7,choice8  
@@ -9,14 +10,14 @@ name2,choice1,choice2,choice3,choice4,choice5,choice6,choice7,choice8
 Up to 8 choices count in all three pages. Fewer is fine. Choices past the 8th are ignored, and so is
 any choice past the end of the weights list.
 
-A line whose first non-blank character is `#` is a comment, and all three pages and
-`pagerank-teams.py` skip it. A `#` later in a line is ordinary text. For example:
+A `#` starts a comment: it and everything after it on that line are ignored, by all three pages and
+`pagerank-teams.py`. A whole line can be a comment, and a row can end with one. A `#` inside
+double quotes is ordinary text. For example:
 
 ```
 # CS374, fall 2026
 aa,bb,cc,-dd
-# bb only gave two choices
-bb,aa,cc
+bb,aa,cc      # bb only gave two choices
 ```
 
 Each algorithm is implemented by a stand-alone html file which has no server connections, doesn't call home.
@@ -45,7 +46,7 @@ All use the same anonymized 12-person class (`aa` … `ll`):
 
 | File | What it shows |
 | --- | --- |
-| `prefs.csv` | The plain class: six choices per person. Same content as `prefs.txt`, which the tests read |
+| `prefs.csv` | The plain class: six choices per person. The tests read this file |
 | `prefs-negatives.csv` | The same class with three `-` choices (aa, ii and kk each mark someone they don't want) |
 | `prefs-varied.csv` | Uneven lists: some people give six choices, some only one or two, some rows have trailing commas |
 | `prefs-proposers.csv` | For Gale-Shapley: a class where **Who proposes** changes the teams. Members propose: every member gets their 1st-choice captain. Captains propose: 7 of 8 members move, and captains get the members they wanted |
@@ -96,7 +97,7 @@ What each page does with it:
 
 ## Tests
 
-Each folder has `tests/verify.mjs`. Run it with `node <folder>/tests/verify.mjs`. The tests use `prefs.txt`.
+Each folder has `tests/verify.mjs`. Run it with `node <folder>/tests/verify.mjs`. The tests use `prefs.csv`.
 
 ## License
 

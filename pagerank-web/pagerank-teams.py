@@ -13,13 +13,24 @@ import argparse
 # csv has preferences for each person:
 # name1, first-choice, 2nd-choice... 8th-choice
 # name2...
+# an unquoted '#' starts a comment that runs to the end of the line
+def strip_comment(line):
+    quoted = False
+    for i, ch in enumerate(line):
+        if ch == '"':
+            quoted = not quoted
+        elif ch == '#' and not quoted:
+            return line[:i]
+    return line
+
 def read_csv_from_stdin():
-    # sys.stdin behaves like an open file object
     rows = []
-    reader = csv.reader(sys.stdin)
+    reader = csv.reader(strip_comment(line) for line in sys.stdin)
     for row in reader:
-        # skip blank lines and comment lines (first non-blank character is '#')
-        if not row or not "".join(row).strip() or row[0].strip().startswith("#"):
+        row = [cell.strip() for cell in row]
+        while row and row[-1] == "":
+            row.pop()
+        if not row or not row[0]:   # blank line, comment-only line, or no name
             continue
         rows.append(row)
     return rows

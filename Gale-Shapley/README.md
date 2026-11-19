@@ -42,7 +42,7 @@ When members propose, every member gets the best captain they can have in any st
 When captains propose, every captain does best and every member does worst.
 
 **Same teams either way?** That is expected when the class has only one stable matching, and then both
-settings must end in it. All of `prefs.txt`, `prefs-negatives.csv` and `prefs-varied.csv` are like that,
+settings must end in it. All of `prefs.csv`, `prefs-negatives.csv` and `prefs-varied.csv` are like that,
 though the proposal logs differ. To see the setting matter, load `../prefs-proposers.csv`, which has
 four stable matchings:
 

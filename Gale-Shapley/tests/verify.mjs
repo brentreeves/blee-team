@@ -90,7 +90,7 @@ function optimality(label, csv, size) {
 
 // ---------------------------------------------------------------- CS374 class
 group('CS374 class (12 people, teams of 3)');
-const cs374 = fs.readFileSync(path.join(root, '..', 'prefs.txt'), 'utf8');
+const cs374 = fs.readFileSync(path.join(root, '..', 'prefs.csv'), 'utf8');
 {
   const rm = run(cs374, { weights: W, size: 3, proposer: 'members' });
   const rc = run(cs374, { weights: W, size: 3, proposer: 'captains' });
@@ -148,9 +148,9 @@ group('Up to eight preferences count; a 9th does not');
   // the 8th choice still decides a ranking: X is a's 8th choice, Y is unlisted
   const r8 = run('X,a\nY,a\na,p,q,r,s,t,u,v,X\nb,X', { weights: W8, size: 2, captains: ['X', 'Y'] });
   check('an 8th-place captain outranks an unlisted one', r8.memberPrefs.get('a'), ['X', 'Y']);
-  const real = run(fs.readFileSync(path.join(root, '..', 'prefs.txt'), 'utf8'), { weights: W8, size: 3 });
+  const real = run(fs.readFileSync(path.join(root, '..', 'prefs.csv'), 'utf8'), { weights: W8, size: 3 });
   const sums = [...real.value].map(([n, v]) => [n, [...v.values()].reduce((x, y) => x + y, 0)]);
-  ok('every prefs.txt row uses all six of its choices (32 points; ee lists gg twice, so 31)',
+  ok('every prefs.csv row uses all six of its choices (32 points; ee lists gg twice, so 31)',
     sums.every(([n, s]) => s === (n === 'ee' ? 31 : 32)));
 }
 
@@ -244,11 +244,13 @@ group('Random classes (seeded): optimality against brute force');
 group('Lines starting with "#" are comments');
 {
   check('comment lines are skipped', parseCSV('# header\nA,B\n   # indented\nB,A\n'), [['A', 'B'], ['B', 'A']]);
-  check('a "#" later in a line is ordinary text', parseCSV('A,B#2'), [['A', 'B#2']]);
+  check('"#" partway through a line starts a comment', parseCSV('A,B,gg # yo momma'), [['A', 'B', 'gg']]);
+  check('a comment right after a comma leaves no empty choice', parseCSV('A,B, # note'), [['A', 'B']]);
+  check('a "#" inside quotes is text', parseCSV('A,"B#2",C'), [['A', 'B#2', 'C']]);
   for (const f of ['prefs.csv', 'prefs-negatives.csv', 'prefs-varied.csv', 'prefs-proposers.csv']) {
     const text = fs.readFileSync(path.join(root, '..', f), 'utf8');
     ok(f + ' has comment lines', /^\s*#/m.test(text));
-    const stripped = text.split('\n').filter(l => !l.trim().startsWith('#')).join('\n');
+    const stripped = text.split('\n').map(l => l.replace(/#.*$/, '')).join('\n');
     check(f + ' reads the same with or without its comments', parseCSV(text), parseCSV(stripped));
     structural(f, run(text, { weights: [13, 8, 5, 3, 2, 1, 1, 1], size: 3 }), 12);
   }

@@ -1,7 +1,7 @@
 # prefs-proposers.csv: a class where Gale-Shapley's "Who proposes" matters
 # Format: name,1st choice,2nd choice,... (up to 8 choices)
 # Prefix a choice with "-" if you do NOT want that person on your team.
-# Lines starting with "#" are comments and are ignored.
+# Everything after a "#" on a line is a comment and is ignored.
 # This class has four stable matchings, so the two settings give different teams:
 #   Members propose:  every member gets their 1st-choice captain.
 #   Captains propose: 7 of 8 members change teams; captains get the members they wanted.

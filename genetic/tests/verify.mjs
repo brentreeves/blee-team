@@ -16,7 +16,7 @@ new Function(code)();
 const TB = globalThis.TeamBuilder;
 
 // the 12-person class (anonymized) the brute-force optima below were computed on
-const sample = readFileSync(join(here, "..", "..", "prefs.txt"), "utf8").trim();
+const sample = readFileSync(join(here, "..", "..", "prefs.csv"), "utf8").trim();
 
 const WEIGHTS = [13, 8, 5, 3, 2, 1];
 let failures = 0;
@@ -112,7 +112,7 @@ check("incomplete preference data still produces a positive result",
   check("with only six weights, only six choices count", six.get("a").size === 6, `got ${six.get("a").size}`);
   const real = TB.preferenceMap(TB.parseCsv(sample), W8);
   const sums = [...real].map(([n, m]) => [n, [...m.values()].reduce((x, y) => x + y, 0)]);
-  check("every prefs.txt row uses all six of its choices (32 points; ee lists gg twice, so 31)",
+  check("every prefs.csv row uses all six of its choices (32 points; ee lists gg twice, so 31)",
     sums.every(([n, s]) => s === (n === "ee" ? 31 : 32)), `got ${JSON.stringify(sums)}`);
 }
 
@@ -121,11 +121,15 @@ check("incomplete preference data still produces a positive result",
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   check("comment lines are skipped",
     same(TB.parseCsv("# header\na,b\n   # indented\nb,a\n"), [["a", "b"], ["b", "a"]]));
-  check('a "#" later in a line is ordinary text', same(TB.parseCsv("a,b#2"), [["a", "b#2"]]));
+  check('"#" partway through a line starts a comment', same(TB.parseCsv("a,b,gg # yo momma"), [["a", "b", "gg"]]),
+    JSON.stringify(TB.parseCsv("a,b,gg # yo momma")));
+  check("a comment right after a comma adds no choice",
+    !TB.preferenceMap(TB.parseCsv("a,b, # note"), WEIGHTS).get("a").has(""));
+  check('a "#" inside quotes is text', same(TB.parseCsv('a,"b#2",c'), [["a", "b#2", "c"]]));
   for (const f of ["prefs.csv", "prefs-negatives.csv", "prefs-varied.csv", "prefs-proposers.csv"]) {
     const text = readFileSync(join(here, "..", "..", f), "utf8");
     check(`${f} has comment lines`, /^\s*#/m.test(text));
-    const stripped = text.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n");
+    const stripped = text.split("\n").map((l) => l.replace(/#.*$/, "")).join("\n");
     check(`${f} reads the same with or without its comments`, same(TB.parseCsv(text), TB.parseCsv(stripped)));
     check(`${f} has 12 people`, TB.preferenceMap(TB.parseCsv(text), WEIGHTS).size === 12);
   }
