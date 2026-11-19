@@ -290,10 +290,12 @@ function makeRng(seed) {
 }
 
 // a forgiving CSV split: handles quoted fields, trims blanks, drops empty lines
+// and comment lines (first non-blank character is "#")
 function parseCsv(text) {
   const rows = [];
   for (const line of text.split(/\r?\n/)) {
     if (!line.trim()) continue;
+    if (line.trim().startsWith("#")) continue; // comment line
     const cells = [];
     let cell = "";
     let quoted = false;

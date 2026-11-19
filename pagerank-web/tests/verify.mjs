@@ -14,7 +14,7 @@ const m = html.match(/ALGORITHM START ={2,}\n([\s\S]*?)\n\/\/ ={2,} ALGORITHM EN
 if (!m) { console.error('Could not find the ALGORITHM block in pagerank.html'); process.exit(1); }
 const algo = await import('data:text/javascript,' +
   encodeURIComponent(m[1] + '\nexport { run, parseCSV, parseChoice, buildModel, teamHappiness, preferenceTeams };'));
-const { run, parseChoice, buildModel, preferenceTeams, teamHappiness } = algo;
+const { run, parseCSV, parseChoice, buildModel, preferenceTeams, teamHappiness } = algo;
 
 const W = [13, 8, 5, 3, 2, 1];
 let pass = 0, fail = 0;
@@ -88,6 +88,20 @@ group('Up to eight preferences count; a 9th does not');
     sums.every(([n, s]) => s === (n === 'ee' ? 31 : 32)));
   check('eight default weights give the same teams on prefs.txt', real.teams.map(t => t.join(', ')),
     ['bb, ee, gg', 'dd, ii, hh', 'cc, aa, ff', 'll, jj, kk']);
+}
+
+// ------------------------------------------------------------------ comments
+group('Lines starting with "#" are comments');
+{
+  check('comment lines are skipped', parseCSV('# header\nA,B\n   # indented\nB,A\n'), [['A', 'B'], ['B', 'A']]);
+  check('a "#" later in a line is ordinary text', parseCSV('A,B#2'), [['A', 'B#2']]);
+  for (const f of ['prefs.csv', 'prefs-negatives.csv', 'prefs-varied.csv', 'prefs-proposers.csv']) {
+    const text = fs.readFileSync(path.join(root, '..', f), 'utf8');
+    ok(f + ' has comment lines', /^\s*#/m.test(text));
+    const stripped = text.split('\n').filter(l => !l.trim().startsWith('#')).join('\n');
+    check(f + ' reads the same with or without its comments', parseCSV(text), parseCSV(stripped));
+    ok(f + ' has 12 people', run(text, [13, 8, 5, 3, 2, 1, 1, 1], 3).rows.length === 12);
+  }
 }
 
 // ------------------------------------------------------------------- parsing

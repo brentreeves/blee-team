@@ -9,6 +9,16 @@ name2,choice1,choice2,choice3,choice4,choice5,choice6,choice7,choice8
 Up to 8 choices count in all three pages. Fewer is fine. Choices past the 8th are ignored, and so is
 any choice past the end of the weights list.
 
+A line whose first non-blank character is `#` is a comment, and all three pages and
+`pagerank-teams.py` skip it. A `#` later in a line is ordinary text. For example:
+
+```
+# CS374, fall 2026
+aa,bb,cc,-dd
+# bb only gave two choices
+bb,aa,cc
+```
+
 Each algorithm is implemented by a stand-alone html file which has no server connections, doesn't call home.
 
 ## How to use

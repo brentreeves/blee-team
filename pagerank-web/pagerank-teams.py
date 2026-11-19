@@ -18,6 +18,9 @@ def read_csv_from_stdin():
     rows = []
     reader = csv.reader(sys.stdin)
     for row in reader:
+        # skip blank lines and comment lines (first non-blank character is '#')
+        if not row or not "".join(row).strip() or row[0].strip().startswith("#"):
+            continue
         rows.append(row)
     return rows
 

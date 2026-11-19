@@ -1,3 +1,11 @@
+# prefs-negatives.csv: the prefs.csv class with three "-" choices
+# Format: name,1st choice,2nd choice,... (up to 8 choices)
+# Prefix a choice with "-" if you do NOT want that person on your team.
+# Lines starting with "#" are comments and are ignored.
+# A "-" choice costs the weight of its position:
+#   aa: -kk in 1st place (costs the most)
+#   ii: -jj in 6th place (costs the least)
+#   kk: -bb in 2nd place
 aa,-kk,bb,dd,ii,jj,ff
 bb,ee,gg,ll,dd,hh,cc
 cc,ii,dd,aa,ff,bb,hh

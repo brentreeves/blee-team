@@ -301,6 +301,7 @@ SOFTWARE.
 function parseCSV(text) {
   const rows = [];
   for (const rawLine of text.split(/\r\n|\n|\r/)) {
+    if (rawLine.trim().startsWith('#')) continue;            // comment line
     const cells = [];
     let cur = '', inQ = false, i = 0;
     while (i < rawLine.length) {

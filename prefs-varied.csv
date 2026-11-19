@@ -1,11 +1,20 @@
+# prefs-varied.csv: the same class, with lists of different lengths
+# Format: name,1st choice,2nd choice,... (up to 8 choices)
+# Prefix a choice with "-" if you do NOT want that person on your team.
+# Lines starting with "#" are comments and are ignored.
+# Fewer than eight choices is fine; unlisted teammates score 0.
+# aa: six choices; bb: five
 aa,kk,bb,dd,ii,jj,ff
 bb,ee,gg,ll,dd,hh
+# cc: four choices, then trailing commas (empty cells are ignored)
 cc,ii,dd,aa,ff,,,,,
+# dd..hh: short lists of one to three choices
 dd,ii,bb,hh,
 ee,gg,bb,
 ff,dd,
 gg,ee,bb,
 hh,cc,bb,ff,
+# ii..ll: four to six choices
 ii,dd,cc,bb,hh
 jj,ff,ll,kk,hh,aa
 kk,aa,bb,dd,ff,ii,jj

@@ -1,3 +1,10 @@
+# prefs.csv: sample class of 12 students (anonymized as aa..ll)
+# Each student lists six teammates they would like, most wanted first.
+# Format: name,1st choice,2nd choice,... (up to 8 choices)
+# Prefix a choice with "-" if you do NOT want that person on your team.
+# Lines starting with "#" are comments and are ignored.
+# Same data as prefs.txt, which the tests read.
+# Note: ee lists gg twice (1st and 6th); only the first mention counts.
 aa,kk,bb,dd,ii,jj,ff
 bb,ee,gg,ll,dd,hh,cc
 cc,ii,dd,aa,ff,bb,hh

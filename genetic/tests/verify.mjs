@@ -116,6 +116,21 @@ check("incomplete preference data still produces a positive result",
     sums.every(([n, s]) => s === (n === "ee" ? 31 : 32)), `got ${JSON.stringify(sums)}`);
 }
 
+// --- lines starting with "#" are comments ---
+{
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  check("comment lines are skipped",
+    same(TB.parseCsv("# header\na,b\n   # indented\nb,a\n"), [["a", "b"], ["b", "a"]]));
+  check('a "#" later in a line is ordinary text', same(TB.parseCsv("a,b#2"), [["a", "b#2"]]));
+  for (const f of ["prefs.csv", "prefs-negatives.csv", "prefs-varied.csv", "prefs-proposers.csv"]) {
+    const text = readFileSync(join(here, "..", "..", f), "utf8");
+    check(`${f} has comment lines`, /^\s*#/m.test(text));
+    const stripped = text.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n");
+    check(`${f} reads the same with or without its comments`, same(TB.parseCsv(text), TB.parseCsv(stripped)));
+    check(`${f} has 12 people`, TB.preferenceMap(TB.parseCsv(text), WEIGHTS).size === 12);
+  }
+}
+
 // --- negative preferences: "-Name" costs the weight of its position ---
 {
   const neg = TB.preferenceMap(TB.parseCsv("aa,-bb,cc,dd,ee,ff,-gg\naa2,- bb"), WEIGHTS);

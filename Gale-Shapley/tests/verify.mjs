@@ -12,8 +12,8 @@ const html = fs.readFileSync(path.join(root, 'gale-shapley.html'), 'utf8');
 
 const m = html.match(/ALGORITHM START ={2,}\n([\s\S]*?)\n\/\/ ={2,} ALGORITHM END/);
 if (!m) { console.error('Could not find the ALGORITHM block in gale-shapley.html'); process.exit(1); }
-const { run, blockingPairs, rankMaps } = await import('data:text/javascript,' +
-  encodeURIComponent(m[1] + '\nexport { run, blockingPairs, rankMaps };'));
+const { run, blockingPairs, rankMaps, parseCSV } = await import('data:text/javascript,' +
+  encodeURIComponent(m[1] + '\nexport { run, blockingPairs, rankMaps, parseCSV };'));
 
 const W = [13, 8, 5, 3, 2, 1];
 let pass = 0, fail = 0;
@@ -116,8 +116,8 @@ group('Embedded samples');
 {
   const sample = html.match(/const SAMPLE = `([\s\S]*?)`/)[1];
   const neg = html.match(/const SAMPLE_NEG = `([\s\S]*?)`/)[1];
-  check('Load sample is the same data as prefs-proposers.csv', sample.trim(),
-    fs.readFileSync(path.join(root, '..', 'prefs-proposers.csv'), 'utf8').trim());
+  check('Load sample is the same data as prefs-proposers.csv', parseCSV(sample),
+    parseCSV(fs.readFileSync(path.join(root, '..', 'prefs-proposers.csv'), 'utf8')));
   const a = run(sample, { weights: W, size: 3, proposer: 'members' });
   const b = run(sample, { weights: W, size: 3, proposer: 'captains' });
   ok('Load sample gives different teams for the two proposers',
@@ -238,6 +238,20 @@ group('Random classes (seeded): optimality against brute force');
   console.log('     (' + trials + ' classes, ' + multi + ' with more than one stable matching)');
   ok('lattice property holds on every random class', bad === 0);
   ok('the random set actually exercises multiple stable matchings', multi >= 20);
+}
+
+// ---------------------------------------------------------------- comments
+group('Lines starting with "#" are comments');
+{
+  check('comment lines are skipped', parseCSV('# header\nA,B\n   # indented\nB,A\n'), [['A', 'B'], ['B', 'A']]);
+  check('a "#" later in a line is ordinary text', parseCSV('A,B#2'), [['A', 'B#2']]);
+  for (const f of ['prefs.csv', 'prefs-negatives.csv', 'prefs-varied.csv', 'prefs-proposers.csv']) {
+    const text = fs.readFileSync(path.join(root, '..', f), 'utf8');
+    ok(f + ' has comment lines', /^\s*#/m.test(text));
+    const stripped = text.split('\n').filter(l => !l.trim().startsWith('#')).join('\n');
+    check(f + ' reads the same with or without its comments', parseCSV(text), parseCSV(stripped));
+    structural(f, run(text, { weights: [13, 8, 5, 3, 2, 1, 1, 1], size: 3 }), 12);
+  }
 }
 
 // ---------------------------------------------------------------- errors & edges
