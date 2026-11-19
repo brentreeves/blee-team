@@ -1,23 +1,22 @@
 # The Blee Team 
 
 Let's form teams.  
-Three ways to make teams from a list of preferences that looks like so:
-
-name1,choice1,choice2,choice3,choice4,choice5,choice6,choice7,choice8  
+Here are three ways to make teams from a list of preferences that looks like so:
+```
+name1,choice1,choice2,choice3,choice4,choice5,choice6,choice7,choice8
 name2,choice1,choice2,choice3,choice4,choice5,choice6,choice7,choice8
 ...
+```
+Up to 8 choices count in all three pages. Fewer is fine. Choices past the 8th are ignored.
 
-Up to 8 choices count in all three pages. Fewer is fine. Choices past the 8th are ignored, and so is
-any choice past the end of the weights list.
-
-A `#` starts a comment: it and everything after it on that line are ignored, by all three pages and
-`pagerank-teams.py`. A whole line can be a comment, and a row can end with one. A `#` inside
-double quotes is ordinary text. For example:
+A `#` starts a comment: everything after it on that line is ignored.  
+A whole line can be a comment, and a row can end with one. 
+A `#` inside double quotes is ordinary text. For example:
 
 ```
-# CS374, fall 2026
+# Be alert, the world needs more lerts.
 aa,bb,cc,-dd
-bb,aa,cc      # bb only gave two choices
+bb,aa,cc      # bb is very terrible, has only two choices!
 ```
 
 Each algorithm is implemented by a stand-alone html file which has no server connections, doesn't call home.
@@ -28,28 +27,23 @@ Each algorithm is implemented by a stand-alone html file which has no server con
    - `genetic/genetic-team.html`
    - `Gale-Shapley/gale-shapley.html`
    - `pagerank-web/pagerank.html`
-2. With the page open, drag a prefs file from Finder (or Explorer) and drop it onto the page's
-   **Preferences** section. In pagerank and Gale-Shapley that section is the **Input** panel. The
-   section gets a dashed outline while you hover, and on release the file's text fills the CSV box,
-   replacing whatever was there. Or press **Load file…** (next to the sample buttons) and pick the
-   file, or paste the text into the box.
-3. Adjust the settings if you like, then press **Build Teams**. Loading a file does not start the
-   build by itself.
+2. With the page open, drag a preferences file from Finder (or Explorer) and drop it onto the page's
+   **Preferences** section.  Or press **Load file…** and pick the file.
+3. Adjust the settings if you like, then press **Build Teams**. Loading a file does not start the build by itself.
 
-Dropping the prefs file onto the html file's icon in Finder does **not** work: the page has to be
-open first. A file dropped on another part of the open page is ignored, rather than the browser
-leaving the page to show the file.
+Dropping the prefs file onto the html file's icon in Finder / Windows Explorere does **not** work: the page has to be
+open in a browser first.  
 
 ### Sample prefs files
 
-All use the same anonymized 12-person class (`aa` … `ll`):
+Here are some csv files to use as examples - students seem to be named 'aa' ... 'll':
 
 | File | What it shows |
 | --- | --- |
 | `prefs.csv` | The plain class: six choices per person. The tests read this file |
 | `prefs-negatives.csv` | The same class with three `-` choices (aa, ii and kk each mark someone they don't want) |
 | `prefs-varied.csv` | Uneven lists: some people give six choices, some only one or two, some rows have trailing commas |
-| `prefs-proposers.csv` | For Gale-Shapley: a class where **Who proposes** changes the teams. Members propose: every member gets their 1st-choice captain. Captains propose: 7 of 8 members move, and captains get the members they wanted |
+| `prefs-proposers.csv` | For Gale-Shapley: a class where **Who proposes** changes the teams. Members propose: every member gets their 1st-choice captain. Captains propose: captains get the members they want. |
 
 ## genetic
 
